@@ -148,6 +148,7 @@ class HandTrackingManager {
 - [Human Interface Guidelines for visionOS](https://developer.apple.com/design/human-interface-guidelines/visionos)
 - [Sample Code and Tutorials](https://developer.apple.com/visionos/learn/)
 - [Hand Tracking](https://developer.apple.com/documentation/arkit/handtrackingprovider)
+- [Data Provider](https://developer.apple.com/documentation/arkit/dataprovider)
 
 ## Requirements
 

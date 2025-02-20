@@ -3,7 +3,7 @@
 ## Prerequisites
 
 ### Unity Installation
-1. Download and install (Unity Hub)[https://unity.com/download]
+1. Download and install [Unity Hub](https://unity.com/download)
 2. During Unity installation, ensure you select:
    - Android Build Support
    - Android Studio NDK

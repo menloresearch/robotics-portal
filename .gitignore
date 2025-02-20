@@ -1,0 +1,73 @@
+# Unity generated
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Never ignore Asset meta data
+![Aa]ssets/**/*.meta
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity3D generated meta files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated file on crash reports
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics generated file
+crashlytics-build.properties
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+# Meta Quest / Oculus specific
+/[Aa]ssets/Oculus/
+/[Aa]ssets/Plugins/Android/
+*.keystore
+*.apk.meta
+*.obb
+*.obb.meta
+
+# Package related
+/[Pp]ackages/
+manifest.json
+manifest.json.meta
+packages-lock.json
+
+# Project specific logs
+*.log 

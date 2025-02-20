@@ -2,6 +2,8 @@ import genesis as gs
 import numpy as np
 from pynput import keyboard
 import time
+import threading
+import uvicorn
 
 gs.init(
     backend=gs.gs_backend.metal,
@@ -96,6 +98,17 @@ g1.set_dofs_force_range(
 
 
 def run_sim(scene):
+    # Initialize the FastAPI app with robot references
+    import app
+    app.init_robot(scene, g1, l_arm_dofs_idx)
+    
+    # Start the FastAPI server in a separate thread
+    api_thread = threading.Thread(
+        target=lambda: uvicorn.run(app.app, host="0.0.0.0", port=8000),
+        daemon=True
+    )
+    api_thread.start()
+    
     g1.set_dofs_position(np.array([0] * 7), l_arm_dofs_idx)
     movement_speed = 0.1
     current_positions = np.array([0.0] * 7)
@@ -161,6 +174,9 @@ def run_sim(scene):
                 )
 
             g1.control_dofs_position(current_positions, l_arm_dofs_idx)
+            
+            # Add this line to update gestures
+            app.update_gesture()
 
             scene.step()
 

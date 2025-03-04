@@ -2,6 +2,8 @@ import genesis as gs
 import numpy as np
 from pynput import keyboard
 import time
+import threading
+import uvicorn
 
 gs.init(
     backend=gs.gs_backend.metal,
@@ -161,7 +163,6 @@ def run_sim(scene):
                 )
 
             g1.control_dofs_position(current_positions, l_arm_dofs_idx)
-
             scene.step()
 
             # Prevent system overwhelming

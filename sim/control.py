@@ -96,9 +96,9 @@ g1.set_dofs_force_range(
 
 
 def run_sim(scene):
-    g1.set_dofs_position(np.array([0] * 7), l_arm_dofs_idx)
+    g1.set_dofs_position(np.array([0] * len(l_arm_jnt_names)), l_arm_dofs_idx)
     movement_speed = 0.1
-    current_positions = np.array([0.0] * 7)
+    current_positions = np.array([0.0] * len(l_arm_jnt_names))
 
     pressed_keys = set()
 
@@ -113,7 +113,7 @@ def run_sim(scene):
             if key == keyboard.Key.space:
                 # Reset position
                 nonlocal current_positions
-                current_positions = np.array([0.0] * 7)
+                current_positions = np.array([0.0] * len(l_arm_jnt_names))
                 g1.control_dofs_position(current_positions, l_arm_dofs_idx)
             elif key == keyboard.Key.esc:
                 # Stop listener

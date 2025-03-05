@@ -240,7 +240,7 @@ class Go2Env:
             self.reset_buf, device=self.device, dtype=gs.tc_float)
         self.extras["time_outs"][time_out_idx] = 1.0
 
-        self.reset_idx(self.reset_buf.nonzero(as_tuple=False).flatten())
+        # self.reset_idx(self.reset_buf.nonzero(as_tuple=False).flatten())
 
         # compute reward
         self.rew_buf[:] = 0.0

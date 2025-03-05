@@ -1,0 +1,306 @@
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import json
+import uvicorn
+import asyncio
+import logging
+from typing import Dict, Set
+import weakref
+import torch
+import math
+import genesis as gs
+from go2_env import Go2Env
+import os
+from contextlib import asynccontextmanager
+import pickle
+from rsl_rl.runners import OnPolicyRunner
+import random
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+policy_walk = None
+policy_stand = None
+policy_right = None
+policy_left = None
+env : Go2Env = None
+
+def load_policy():
+    global policy_walk, policy_stand, policy_right, policy_left, env
+    log_dir = f"checkpoints/go2-walking"
+    env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
+        open(f"checkpoints/go2-walking/cfgs.pkl", "rb"))
+    reward_cfg["reward_scales"] = {}
+
+    env = Go2Env(
+        num_envs=1,
+        env_cfg=env_cfg,
+        obs_cfg=obs_cfg,
+        reward_cfg=reward_cfg,
+        command_cfg=command_cfg,
+        show_viewer=False,
+    )
+
+    runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
+    resume_path = os.path.join(log_dir, f"model_500.pt")
+    runner.load(resume_path)
+    policy_walk = runner.get_inference_policy(device="cuda:0")
+
+    runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
+    resume_path = os.path.join(log_dir, f"model_500.pt")
+    runner.load(resume_path)
+    policy_stand = runner.get_inference_policy(device="cuda:0")
+
+    log_dir = f"checkpoints/go2-left"
+    env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
+        open(f"checkpoints/go2-left/cfgs.pkl", "rb"))
+    reward_cfg["reward_scales"] = {}
+
+    runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
+    resume_path = os.path.join(log_dir, f"model_500.pt")
+    runner.load(resume_path)
+    policy_left = runner.get_inference_policy(device="cuda:0")
+
+    log_dir = f"checkpoints/go2-right"
+    env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
+        open(f"checkpoints/go2-right/cfgs.pkl", "rb"))
+    reward_cfg["reward_scales"] = {}
+
+    runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
+    resume_path = os.path.join(log_dir, f"model_500.pt")
+    runner.load(resume_path)
+    policy_right = runner.get_inference_policy(device="cuda:0")
+    
+    log_dir = f"checkpoints/go2-stand"
+    env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
+        open(f"checkpoints/go2-stand/cfgs.pkl", "rb"))
+    reward_cfg["reward_scales"] = {}
+
+    runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
+    resume_path = os.path.join(log_dir, f"model_500.pt")
+    runner.load(resume_path)
+    policy_right = runner.get_inference_policy(device="cuda:0")
+    return
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Load the ML mode
+    gs.init()
+    load_policy()
+    yield
+    # Clean up the ML models and release the resources
+    
+
+def build_action(tools):
+    if tools is None:
+        return []
+    action = []
+    for tool in tools:
+        arguments = json.loads(tool.function.arguments)
+        amplitude = arguments["amplitude"]
+        if tool.function.name == "turn_left":
+            amplitude = amplitude *190/45
+            action.append((policy_left,amplitude))
+        elif tool.function.name == "turn_right":
+            amplitude = amplitude *190/45
+            action.append((policy_right, amplitude))
+        elif tool.function.name == "go_ahead":
+            amplitude = amplitude *120
+            action.append((policy_walk,amplitude))
+        elif tool.function.name == "stand":
+            amplitude = amplitude *120
+            action.append((policy_stand, amplitude))
+    return action
+def apply_policy(policy, env, obs, num_steps=1000):
+    # env.reset()
+    for _ in range(num_steps):
+        action = policy(obs)
+        obs, _, rews, dones, infos = env.step(action)
+    return obs
+app = FastAPI(lifespan=lifespan,title="Fully Self-Contained WebSocket Server")
+
+# Regular HTTP endpoint
+
+
+@app.get("/")
+async def get():
+    return {"message": "WebSocket server is running. Connect to /ws to use WebSocket."}
+
+# WebSocket endpoint with no external dependencies
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    # Static variable to keep track of all active connections
+    # Using class attribute pattern to avoid global variables
+    # if not hasattr(websocket_endpoint, "active_connections"):
+
+    global policy_right, policy_left, policy_stand, policy_walk, env
+    
+    active_connections = {}
+
+    # Accept connection
+    await websocket.accept()
+    client_id = id(websocket)
+    active_connections[client_id] = websocket
+
+    logger.info(
+        f"Client {client_id} connected. Total clients: {len(active_connections)}")
+
+    # Create message queue local to this websocket connection
+    message_queue = asyncio.Queue()
+
+    # Helper functions for WebSocket communication
+    async def send_personal_message(message: str, target_id: int):
+        if target_id in active_connections:
+            conn = active_connections[target_id]
+            # if conn.client_state != WebSocketState.DISCONNECTED:
+            await conn.send_text(message)
+
+    async def broadcast(message: str, exclude_id: int = None):
+        for conn_id, conn in list(active_connections.items()):
+            # if conn_id != exclude_id and conn.client_state != WebSocketState.DISCONNECTED:
+                try:
+                    await conn.send_text(message)
+                except RuntimeError:
+                    # Connection might have closed during iteration
+                    pass
+
+    # Notify about new connection
+    await send_personal_message(
+        json.dumps({"type": "connection_established", "client_id": client_id}),
+        client_id
+    )
+    # obs, _ = env.reset()
+    # Create task for server-side processing
+    async def server_processor():
+        list_actions = [policy_right, policy_left, policy_stand, policy_walk]
+        obs, _ = env.reset()
+        try:
+            steps = random.randint(100,200)
+            action = random.randint(0,3)
+            step = 0
+            while True:
+                # Get message from queue (added by client handler)
+                
+                if not message_queue.empty():
+                    message = await message_queue.get()
+                else: message = {}
+                    
+
+                # Process the message (server-side logic)
+                logger.info(
+                    f"Processing message from client {client_id}: {message}")
+
+                # Example: Add some server-side processing
+                if message.get("type") == "zoom_in":
+                    # Simulate some processing delay
+                    processed_message = {
+                        "type": "response",
+                        "content": f"Processed: {message.get('content', '')}",
+                        "processed_at": asyncio.get_event_loop().time(),
+                        "original": message
+                    }
+
+                    # Send processed result back to client
+                    
+                elif message.get("type") == "zoom_out":
+                    pass
+                
+                # render image then send message to client
+                
+                if step < steps:
+                    step += 1
+                    with torch.no_grad():
+                        third_view, _, _, _ = env.cam.render()
+                        first_view, _, _, _ = env.cam_first.render()
+                        god_view, _, _, _ = env.cam_god.render()
+                        actions = list_actions[action](obs)
+                        obs, _, rews, dones, infos = env.step(actions)
+                        processed_message = {
+                            "third_view":str(third_view.shape),
+                            "first_view":str(third_view.shape),
+                            "god_view":str(third_view.shape)
+                        }
+                        await send_personal_message(
+                        json.dumps(processed_message),
+                        client_id
+                        )   
+                        
+                else:
+                    step = 0
+                    steps = random.randint(100,200)
+                    action = random.randint(0,3)
+
+                # Mark task as done
+                # message_queue.task_done()
+        except asyncio.CancelledError:
+            logger.info(f"Server processor for client {client_id} cancelled")
+        except Exception as e:
+            logger.error(
+                f"Server processor error for client {client_id}: {str(e)}")
+
+    # Create task for handling client messages
+    async def client_handler():
+        try:
+            while True:
+                # Wait for message from client
+                data = await websocket.receive_text()
+
+                # Parse the message
+                try:
+                    message_data = json.loads(data)
+                except json.JSONDecodeError:
+                    message_data = {"type": "message", "content": data}
+
+                # Add client message to processing queue
+                await message_queue.put(message_data)
+
+                # Acknowledge receipt immediately (optional)
+                # await send_personal_message(
+                #     json.dumps({"type": "ack", "message_received": True}),
+                #     client_id
+                # )
+        except WebSocketDisconnect:
+            logger.info(f"Client {client_id} disconnected")
+            raise
+        except asyncio.CancelledError:
+            logger.info(f"Client handler for client {client_id} cancelled")
+        except Exception as e:
+            logger.error(
+                f"Client handler error for client {client_id}: {str(e)}")
+            raise
+
+    # Run both coroutines concurrently
+    server_task = asyncio.create_task(server_processor())
+    client_task = asyncio.create_task(client_handler())
+
+    try:
+        # Wait for either task to finish (usually due to disconnect)
+        done, pending = await asyncio.wait(
+            [server_task, client_task],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+
+        # Cancel the remaining task
+        for task in pending:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    except Exception as e:
+        logger.error(f"WebSocket error for client {client_id}: {str(e)}")
+    finally:
+        # Clean up - remove connection from active connections
+        if client_id in active_connections:
+            del active_connections[client_id]
+
+        # Log remaining clients
+        logger.info(
+            f"Client {client_id} removed. Remaining clients: {len(active_connections)}")
+
+        # Notify about disconnection (optional)
+
+
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)

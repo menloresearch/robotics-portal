@@ -79,3 +79,4 @@ packages-lock.json
 unitree_ros/
 # anythng with unitree folder
 *unitree_ros/
+__pycache__/

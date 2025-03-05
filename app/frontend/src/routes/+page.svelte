@@ -1,6 +1,7 @@
 <!-- App.svelte -->
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
+  import { handleZoom } from "$lib/interacts.ts";
 
   // State variables
   let socket: WebSocket | null = null;
@@ -22,75 +23,6 @@
   let fpsArray: number[] = [];
   let latencyArray: number[] = [];
 
-  // Handle zoom events
-  function handleZoom(event: WheelEvent) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-
-    // Prevent default scrolling behavior
-    event.preventDefault();
-
-    // Determine zoom direction based on wheel delta
-    const zoomDirection = event.deltaY < 0 ? "in" : "out";
-
-    // Calculate zoom point relative to canvas
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    // Calculate relative position (0 to 1)
-    const relativeX = x / canvas.width;
-    const relativeY = y / canvas.height;
-
-    // Send zoom message to server
-    socket.send(
-      JSON.stringify({
-        type: "zoom",
-        direction: zoomDirection,
-        position: {
-          x: relativeX,
-          y: relativeY,
-        },
-      }),
-    );
-  }
-
-  // Handle mouse down event
-  function handleMouseDown(event: MouseEvent) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) return;
-
-    isDragging = true;
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
-  }
-
-  // Handle mouse move event
-  function handleMouseMove(event: MouseEvent) {
-    if (!isDragging || !socket || socket.readyState !== WebSocket.OPEN) return;
-
-    const deltaX = event.clientX - lastMouseX;
-    const deltaY = event.clientY - lastMouseY;
-
-    // Calculate relative movement (as percentage of canvas size)
-    const relativeX = deltaX / canvas.width;
-    const relativeY = deltaY / canvas.height;
-
-    // Send pan message to server
-    socket.send(
-      JSON.stringify({
-        type: "pan",
-        delta: [relativeY, relativeX, 0],
-      }),
-    );
-
-    lastMouseX = event.clientX;
-    lastMouseY = event.clientY;
-  }
-
-  // Handle mouse up event
-  function handleMouseUp() {
-    isDragging = false;
-  }
-
   // Initialize canvas on mount
   onMount(() => {
     canvas = document.getElementById("imageDisplay") as HTMLCanvasElement;
@@ -101,13 +33,19 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Add zoom event listener
-    canvas.addEventListener("wheel", handleZoom, { passive: false });
+    canvas.addEventListener(
+      "wheel",
+      (e) => handleZoom(socket as WebSocket, e),
+      {
+        passive: false,
+      },
+    );
 
     // Add drag event listeners
-    canvas.addEventListener("mousedown", handleMouseDown);
-    canvas.addEventListener("mousemove", handleMouseMove);
-    canvas.addEventListener("mouseup", handleMouseUp);
-    canvas.addEventListener("mouseleave", handleMouseUp);
+    // canvas.addEventListener("mousedown", handleMouseDown);
+    // canvas.addEventListener("mousemove", handleMouseMove);
+    // canvas.addEventListener("mouseup", handleMouseUp);
+    // canvas.addEventListener("mouseleave", handleMouseUp);
   });
 
   // Clean up event listener on destroy
@@ -116,11 +54,13 @@
       socket.close();
     }
     if (canvas) {
-      canvas.removeEventListener("wheel", handleZoom);
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      canvas.removeEventListener("mousemove", handleMouseMove);
-      canvas.removeEventListener("mouseup", handleMouseUp);
-      canvas.removeEventListener("mouseleave", handleMouseUp);
+      canvas.removeEventListener("wheel", (e) =>
+        handleZoom(socket as WebSocket, e),
+      );
+      // canvas.removeEventListener("mousedown", handleMouseDown);
+      // canvas.removeEventListener("mousemove", handleMouseMove);
+      // canvas.removeEventListener("mouseup", handleMouseUp);
+      // canvas.removeEventListener("mouseleave", handleMouseUp);
     }
   });
 

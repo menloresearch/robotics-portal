@@ -223,18 +223,18 @@ async def websocket_endpoint(websocket: WebSocket):
                         step += 1
                         with torch.no_grad():
                             third_view, _, _, _ = env.cam.render()
-                            # first_view, _, _, _ = env.cam_first.render()
-                            # god_view, _, _, _ = env.cam_god.render()
+                            first_view, _, _, _ = env.cam_first.render()
+                            god_view, _, _, _ = env.cam_god.render()
                             actions = list_actions[action](obs)
                             obs, _, rews, dones, infos = env.step(actions)
                             # print(third_view.dtype)
                             processed_message = {
                                 "third_view": encode_numpy_array(third_view),
                                 "third_view_shape": list(third_view.shape),
-                                # "first_view": encode_numpy_array(first_view),
-                                # "first_view_shape": list(first_view.shape),
-                                # "god_view": encode_numpy_array(god_view),
-                                # "god_view_shape": list(god_view.shape)
+                                "first_view": encode_numpy_array(first_view),
+                                "first_view_shape": list(first_view.shape),
+                                "god_view": encode_numpy_array(god_view),
+                                "god_view_shape": list(god_view.shape)
                             }
 
                             await send_personal_message(
@@ -246,6 +246,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         step = 0
                         steps = random.randint(100, 200)
                         action = random.randint(0, 3)
+                except WebSocketDisconnect:
+                    logger.error(
+                        f"Websocket disconnected")
+                    raise
                 except Exception as e:
                     logger.error(
                         f"Error while rendering: {str(e)}")

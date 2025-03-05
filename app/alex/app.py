@@ -15,11 +15,8 @@ import pickle
 from rsl_rl.runners import OnPolicyRunner
 from utils import encode_numpy_array
 import random
-<<<<<<< HEAD
-
-=======
 import base64
->>>>>>> b0f35405ba96361d3e6fbf84a0147aca71a7ce37
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -80,11 +77,7 @@ def load_policy():
     runner.load(resume_path)
     policy_right = runner.get_inference_policy(device="cuda:0")
 
-<<<<<<< HEAD
     log_dir = "checkpoints/go2-stand"
-=======
-    log_dir = f"checkpoints/go2-stand"
->>>>>>> b0f35405ba96361d3e6fbf84a0147aca71a7ce37
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
         open("checkpoints/go2-stand/cfgs.pkl", "rb")
     )
@@ -114,17 +107,10 @@ def build_action(tools):
         arguments = json.loads(tool.function.arguments)
         amplitude = arguments["amplitude"]
         if tool.function.name == "turn_left":
-<<<<<<< HEAD
             amplitude = amplitude * 190 / 45
             action.append((policy_left, amplitude))
         elif tool.function.name == "turn_right":
             amplitude = amplitude * 190 / 45
-=======
-            amplitude = amplitude * 190/45
-            action.append((policy_left, amplitude))
-        elif tool.function.name == "turn_right":
-            amplitude = amplitude * 190/45
->>>>>>> b0f35405ba96361d3e6fbf84a0147aca71a7ce37
             action.append((policy_right, amplitude))
         elif tool.function.name == "go_ahead":
             amplitude = amplitude * 120
@@ -220,7 +206,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     # Process the message (server-side logic)
                     logger.info(
-                        f"Processing message from client {client_id}: {message}")
+                        f"Processing message from client {client_id}: {message}"
+                    )
 
                     # Example: Add some server-side processing
                     if message.get("type") == "zoom_in":
@@ -229,7 +216,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "response",
                             "content": f"Processed: {message.get('content', '')}",
                             "processed_at": asyncio.get_event_loop().time(),
-                            "original": message
+                            "original": message,
                         }
 
                         # Send processed result back to client
@@ -254,12 +241,11 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "first_view": encode_numpy_array(first_view),
                                 "first_view_shape": list(first_view.shape),
                                 "god_view": encode_numpy_array(god_view),
-                                "god_view_shape": list(god_view.shape)
+                                "god_view_shape": list(god_view.shape),
                             }
 
                             await send_personal_message(
-                                json.dumps(processed_message),
-                                client_id
+                                json.dumps(processed_message), client_id
                             )
 
                     else:
@@ -267,12 +253,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         steps = random.randint(100, 200)
                         action = random.randint(0, 3)
                 except WebSocketDisconnect:
-                    logger.error(
-                        f"Websocket disconnected")
+                    logger.error("Websocket disconnected")
                     raise
                 except Exception as e:
-                    logger.error(
-                        f"Error while rendering: {str(e)}")
+                    logger.error(f"Error while rendering: {str(e)}")
                 # Mark task as done
                 # message_queue.task_done()
         except asyncio.CancelledError:

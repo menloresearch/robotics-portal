@@ -58,20 +58,20 @@ async def connect_websocket():
                         tuple(processed_message['third_view_shape'])
                     )
                     
-                    # first_view = decode_numpy_array(
-                    #     processed_message['first_view'], 
-                    #     tuple(processed_message['first_view_shape'])
-                    # )
+                    first_view = decode_numpy_array(
+                        processed_message['first_view'], 
+                        tuple(processed_message['first_view_shape'])
+                    )
                     
-                    # god_view = decode_numpy_array(
-                    #     processed_message['god_view'], 
-                    #     tuple(processed_message['god_view_shape'])
-                    # )
+                    god_view = decode_numpy_array(
+                        processed_message['god_view'], 
+                        tuple(processed_message['god_view_shape'])
+                    )
                     
                     # Display images using OpenCV
                     cv2.imshow('Third View', third_view)
-                    # cv2.imshow('First View', first_view)
-                    # cv2.imshow('God View', god_view)
+                    cv2.imshow('First View', first_view)
+                    cv2.imshow('God View', god_view)
                     
                     # Wait for a key press (1ms) and check for 'q' to quit
                     key = cv2.waitKey(1)

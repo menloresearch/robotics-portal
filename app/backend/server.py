@@ -41,6 +41,8 @@ async def websocket_endpoint(websocket: WebSocket):
     frame_time = 1.0 / target_fps
     cam_id = 0
     steps = 0
+    zoom = 0
+    pan = [0, 0, 0]
 
     try:
         while True:
@@ -62,13 +64,26 @@ async def websocket_endpoint(websocket: WebSocket):
                     cam_id = int(message["camera"])
                     logger.info(f"Camera changed to {cam_id}")
 
+                if message.get("type") == "zoom":
+                    if message["direction"] == "in":
+                        if zoom > -0.8:
+                            zoom -= 0.1
+                    elif message["direction"] == "out":
+                        if zoom < 1:
+                            zoom += 0.1
+
+                if message.get("type") == "pan":
+                    pan = message["delta"]
+
             except asyncio.TimeoutError:
                 pass  # No message received, continue streaming
 
             # Stream the frame
             start_time = time.time()
 
-            frame, steps = render_cam(cam_id, steps)
+            def_pos = np.array([3.5, 0.0, 2.5])
+            frame, steps, def_pos = render_cam(cam_id, steps, zoom, pan, def_pos)
+            pan = [0, 0, 0]
 
             # Convert numpy array to JPEG
             success, encoded_frame = cv2.imencode(".jpg", frame)

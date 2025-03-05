@@ -73,7 +73,13 @@ g1.set_dofs_force_range(  # refer to the json for more information
 )
 
 
-def render_cam(id: int = 0, steps=0):
+def render_cam(
+    id: int = 0,
+    steps=0,
+    zoom: int = 1,
+    pan=[0, 0, 0],
+    def_pos=np.array([3.5, 0.0, 2.5]),
+):
     """
     Render the camera view with the specified id.
 
@@ -100,15 +106,21 @@ def render_cam(id: int = 0, steps=0):
         )
 
     if id == 0:
+        def_pos += np.array(pan)
+        lookat = np.array([0.0, 0.0, 0.5])
+        curr_pos = def_pos + zoom * (def_pos - lookat)
+
         cam.set_pose(
-            pos=(3.5, 0.0, 2.5),
+            pos=curr_pos,
             lookat=(0, 0, 0.5),
         )
+
     elif id == 1:
         cam.set_pose(
             pos=(4, 5, 3),
             lookat=(0, 0, 0.5),
         )
+
     elif id == 2:
         cam.set_pose(
             pos=(4, 5, 2),

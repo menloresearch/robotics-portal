@@ -7,6 +7,9 @@
   let connectionStatus = "Disconnected";
   let statusColor = "text-red-500";
   let frameCount = 0;
+  let isDragging = false;
+  let lastMouseX = 0;
+  let lastMouseY = 0;
   let fps = "0";
   let latency = "0";
   let frameSize = "0";
@@ -19,6 +22,75 @@
   let fpsArray: number[] = [];
   let latencyArray: number[] = [];
 
+  // Handle zoom events
+  function handleZoom(event: WheelEvent) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+    // Prevent default scrolling behavior
+    event.preventDefault();
+
+    // Determine zoom direction based on wheel delta
+    const zoomDirection = event.deltaY < 0 ? "in" : "out";
+
+    // Calculate zoom point relative to canvas
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Calculate relative position (0 to 1)
+    const relativeX = x / canvas.width;
+    const relativeY = y / canvas.height;
+
+    // Send zoom message to server
+    socket.send(
+      JSON.stringify({
+        type: "zoom",
+        direction: zoomDirection,
+        position: {
+          x: relativeX,
+          y: relativeY,
+        },
+      }),
+    );
+  }
+
+  // Handle mouse down event
+  function handleMouseDown(event: MouseEvent) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+    isDragging = true;
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+  }
+
+  // Handle mouse move event
+  function handleMouseMove(event: MouseEvent) {
+    if (!isDragging || !socket || socket.readyState !== WebSocket.OPEN) return;
+
+    const deltaX = event.clientX - lastMouseX;
+    const deltaY = event.clientY - lastMouseY;
+
+    // Calculate relative movement (as percentage of canvas size)
+    const relativeX = deltaX / canvas.width;
+    const relativeY = deltaY / canvas.height;
+
+    // Send pan message to server
+    socket.send(
+      JSON.stringify({
+        type: "pan",
+        delta: [relativeY, relativeX, 0],
+      }),
+    );
+
+    lastMouseX = event.clientX;
+    lastMouseY = event.clientY;
+  }
+
+  // Handle mouse up event
+  function handleMouseUp() {
+    isDragging = false;
+  }
+
   // Initialize canvas on mount
   onMount(() => {
     canvas = document.getElementById("imageDisplay") as HTMLCanvasElement;
@@ -27,6 +99,29 @@
     // Clear canvas with gray background
     ctx.fillStyle = "#f3f4f6";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Add zoom event listener
+    canvas.addEventListener("wheel", handleZoom, { passive: false });
+
+    // Add drag event listeners
+    canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("mouseleave", handleMouseUp);
+  });
+
+  // Clean up event listener on destroy
+  onDestroy(() => {
+    if (socket) {
+      socket.close();
+    }
+    if (canvas) {
+      canvas.removeEventListener("wheel", handleZoom);
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("mouseleave", handleMouseUp);
+    }
   });
 
   onDestroy(() => {
@@ -208,7 +303,11 @@
   </div>
 
   <div class="border border-gray-300 rounded-md overflow-hidden shadow-sm">
-    <canvas id="imageDisplay" width="640" height="480" class="w-full h-auto"
+    <canvas
+      id="imageDisplay"
+      width="640"
+      height="480"
+      class="w-full h-auto cursor-grab active:cursor-grabbing"
     ></canvas>
   </div>
 
@@ -224,4 +323,3 @@
     </div>
   </div>
 </div>
-

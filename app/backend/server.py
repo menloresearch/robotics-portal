@@ -72,8 +72,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         if zoom < 1:
                             zoom += 0.1
 
-                if message.get("type") == "pan":
-                    pan = message["delta"]
+                # if message.get("type") == "pan":
+                #     pan = message["delta"]
 
             except asyncio.TimeoutError:
                 pass  # No message received, continue streaming
@@ -82,7 +82,7 @@ async def websocket_endpoint(websocket: WebSocket):
             start_time = time.time()
 
             def_pos = np.array([3.5, 0.0, 2.5])
-            frame, steps, def_pos = render_cam(cam_id, steps, zoom, pan, def_pos)
+            frame, steps = render_cam(cam_id, steps, zoom, pan, def_pos)
             pan = [0, 0, 0]
 
             # Convert numpy array to JPEG

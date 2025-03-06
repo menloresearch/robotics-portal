@@ -48,11 +48,6 @@ def load_policy():
     runner.load(resume_path)
     policy_walk = runner.get_inference_policy(device="cuda:0")
 
-    runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
-    resume_path = os.path.join(log_dir, f"model_500.pt")
-    runner.load(resume_path)
-    policy_stand = runner.get_inference_policy(device="cuda:0")
-
     log_dir = f"checkpoints/go2-left"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
         open(f"checkpoints/go2-left/cfgs.pkl", "rb"))
@@ -81,7 +76,7 @@ def load_policy():
     runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
     resume_path = os.path.join(log_dir, f"model_500.pt")
     runner.load(resume_path)
-    policy_right = runner.get_inference_policy(device="cuda:0")
+    policy_stand = runner.get_inference_policy(device="cuda:0")
     return
 
 
@@ -94,26 +89,14 @@ async def lifespan(app: FastAPI):
     # Clean up the ML models and release the resources
 
 
-def build_action(tools):
-    if tools is None:
-        return []
-    action = []
-    for tool in tools:
-        arguments = json.loads(tool.function.arguments)
-        amplitude = arguments["amplitude"]
-        if tool.function.name == "turn_left":
-            amplitude = amplitude * 190/45
-            action.append((policy_left, amplitude))
-        elif tool.function.name == "turn_right":
-            amplitude = amplitude * 190/45
-            action.append((policy_right, amplitude))
-        elif tool.function.name == "go_ahead":
-            amplitude = amplitude * 120
-            action.append((policy_walk, amplitude))
-        elif tool.function.name == "stand":
-            amplitude = amplitude * 120
-            action.append((policy_stand, amplitude))
-    return action
+def transform(action,amplitude):
+    
+    if action==0 or action ==1: # right or left
+        amplitude = amplitude * 70/45
+
+    elif action==3:
+        amplitude = amplitude * 120
+    return amplitude
 
 
 def apply_policy(policy, env, obs, num_steps=1000):
@@ -156,6 +139,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Create message queue local to this websocket connection
     message_queue = asyncio.Queue()
+    actions_queue = asyncio.Queue()
 
     # Helper functions for WebSocket communication
     async def send_personal_message(message: str, target_id: int):
@@ -180,55 +164,78 @@ async def websocket_endpoint(websocket: WebSocket):
     )
     # obs, _ = env.reset()
     # Create task for server-side processing
-
-    async def server_processor():
+    async def server_processor(message_queue, actions_queue):
         list_actions = [policy_right, policy_left, policy_stand, policy_walk]
+        actions_map = {"move_forward":3, "rotate_left":1,"rotate_right":0,"wait":2}
+        
         obs, _ = env.reset()
         try:
-            steps = random.randint(100, 200)
-            action = random.randint(0, 3)
-            step = 0
-            while True:
-                try:
+            
+                steps = random.randint(100, 200)
+                action = random.randint(0, 3)
+                step = 0
+                stop = True
+                while True:
+                    try:
 
-                    # Get message from queue (added by client handler)
+                        # Get message from queue (added by client handler)
 
-                    if not message_queue.empty():
-                        message = await message_queue.get()
-                    else:
-                        message = {}
+                        if not message_queue.empty():
+                            message = await message_queue.get()
+                        else:
+                            message = {}
 
-                    # Process the message (server-side logic)
-                    logger.info(
-                        f"Processing message from client {client_id}: {message}")
+                        # Process the message (server-side logic)
+                        logger.info(
+                            f"Processing message from client {client_id}: {message}")
 
-                    # Example: Add some server-side processing
-                    if message.get("type") == "zoom_in":
-                        # Simulate some processing delay
-                        processed_message = {
-                            "type": "response",
-                            "content": f"Processed: {message.get('content', '')}",
-                            "processed_at": asyncio.get_event_loop().time(),
-                            "original": message
-                        }
+                        # Example: Add some server-side processing
+                        if message.get("type") == "zoom_in":
+                            # Simulate some processing delay
+                            processed_message = {
+                                "type": "response",
+                                "content": f"Processed: {message.get('content', '')}",
+                                "processed_at": asyncio.get_event_loop().time(),
+                                "original": message
+                            }
 
-                        # Send processed result back to client
+                            # Send processed result back to client
 
-                    elif message.get("type") == "zoom_out":
-                        pass
+                        elif message.get("type") == "stop":
+                            stop = True
+                            # erase the actions queue
+                            while not actions_queue.empty():
+                                actions_queue.get_nowait()
+                                actions_queue.task_done()
+                            
+                        if (not actions_queue.empty()) and stop == True:
+                            action, amptitude = await actions_queue.get()
+                            logger.info("action: "+str(action) +", am:"+ str(amptitude))
+                            action = actions_map[action]
+                            steps = transform(action, amptitude)
+                            logger.info("action: "+str(action) +", steps:"+ str(steps))
+                            step = 0
+                            stop = False
+                            
 
-                    # render image then send message to client
+                        # render image then send message to client
 
-                    if step < steps:
-                        step += 1
-                        with torch.no_grad():
+                        if step < steps:
+                            step += 1
+                            
                             third_view, _, _, _ = env.cam.render()
                             first_view, _, _, _ = env.cam_first.render()
                             god_view, _, _, _ = env.cam_god.render()
-                            actions = list_actions[action](obs)
-                            obs, _, rews, dones, infos = env.step(actions)
-                            # print(third_view.dtype)
+                            with torch.no_grad():
+                                if stop:
+                                    actions = list_actions[2](obs) # stand
+                                    obs, _, rews, dones, infos = env.step(actions)
+                                else:
+                                    actions = list_actions[action](obs)
+                                    obs, _, rews, dones, infos = env.step(actions)
+                            # logger.info(third_view.dtype)
                             processed_message = {
+                                "type": "streaming_view",
                                 "third_view": encode_numpy_array(third_view),
                                 "third_view_shape": list(third_view.shape),
                                 "first_view": encode_numpy_array(first_view),
@@ -241,21 +248,22 @@ async def websocket_endpoint(websocket: WebSocket):
                                 json.dumps(processed_message),
                                 client_id
                             )
+                            print("robot position:", env.position)
+                            await asyncio.sleep(0.001)
 
-                    else:
-                        step = 0
-                        steps = random.randint(100, 200)
-                        action = random.randint(0, 3)
-                except WebSocketDisconnect:
-                    logger.error(
-                        f"Websocket disconnected")
-                    raise
-                except Exception as e:
-                    logger.error(
-                        f"Error while rendering: {str(e)}")
+                        else:
+                            step = 0
+                            stop = True
+                    except WebSocketDisconnect:
+                        logger.error(
+                            f"Websocket disconnected")
+                        raise
+                    except Exception as e:
+                        logger.error(
+                            f"Error while rendering: {str(e)}")
 
-                # Mark task as done
-                # message_queue.task_done()
+                    # Mark task as done
+                    # message_queue.task_done()
         except asyncio.CancelledError:
             logger.info(f"Server processor for client {client_id} cancelled")
         except Exception as e:
@@ -263,7 +271,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 f"Server processor error for client {client_id}: {str(e)}")
 
     # Create task for handling client messages
-    async def client_handler():
+    async def client_handler(message_queue, actions_queue):
+        global env
         try:
             while True:
                 # Wait for message from client
@@ -276,7 +285,12 @@ async def websocket_endpoint(websocket: WebSocket):
                     message_data = {"type": "message", "content": data}
 
                 # Add client message to processing queue
-                await message_queue.put(message_data)
+                if message_data.get("type") == "command":
+                    content = message_data.get("content", "")
+                    
+                else:
+                    await message_queue.put(message_data)
+                print("robot position:", env.position)
 
                 # Acknowledge receipt immediately (optional)
                 # await send_personal_message(
@@ -294,8 +308,8 @@ async def websocket_endpoint(websocket: WebSocket):
             raise
 
     # Run both coroutines concurrently
-    server_task = asyncio.create_task(server_processor())
-    client_task = asyncio.create_task(client_handler())
+    server_task = asyncio.create_task(server_processor(message_queue, actions_queue))
+    client_task = asyncio.create_task(client_handler(message_queue, actions_queue))
 
     try:
         # Wait for either task to finish (usually due to disconnect)

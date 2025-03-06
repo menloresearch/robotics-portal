@@ -20,6 +20,8 @@
   let secondaryCanvas: HTMLCanvasElement;
   let secondaryCtx: CanvasRenderingContext2D;
   let isConnected = false;
+  let instruction = "";
+  let reasoningMessages: string[] = [];
 
   // Performance tracking
   let lastFrameTime = 0;
@@ -44,7 +46,7 @@
     secondaryCtx.fillRect(0, 0, secondaryCanvas.width, secondaryCanvas.height);
 
     // Add zoom event listener
-    canvas.addEventListener(
+    secondaryCanvas.addEventListener(
       "wheel",
       (e) => handleZoom(socket as WebSocket, e),
       {
@@ -64,8 +66,8 @@
     if (socket) {
       socket.close();
     }
-    if (canvas) {
-      canvas.removeEventListener("wheel", (e) =>
+    if (secondaryCanvas) {
+      secondaryCanvas.removeEventListener("wheel", (e) =>
         handleZoom(socket as WebSocket, e),
       );
       // canvas.removeEventListener("mousedown", handleMouseDown);
@@ -131,6 +133,21 @@
             latencyArray,
             latency,
           );
+        } else if (message.type === "reasoning") {
+          // Handle reasoning messages
+          reasoningMessages = [
+            ...reasoningMessages,
+            typeof message.message === "object"
+              ? JSON.stringify(message.message, null, 2)
+              : message.message,
+          ];
+          // Auto-scroll to the latest message
+          setTimeout(() => {
+            const reasoningBox = document.getElementById("reasoning-box");
+            if (reasoningBox) {
+              reasoningBox.scrollTop = reasoningBox.scrollHeight;
+            }
+          }, 0);
         }
       } catch (error) {
         console.error("Error processing message:", error);
@@ -185,6 +202,20 @@
           fps: parseInt(fpsValue),
         }),
       );
+    }
+  }
+
+  // Send command instruction to the backend
+  function sendCommand() {
+    if (socket && socket.readyState === WebSocket.OPEN && instruction.trim()) {
+      socket.send(
+        JSON.stringify({
+          type: "command",
+          content: instruction.trim(),
+        }),
+      );
+      // Clear the input after sending
+      instruction = "";
     }
   }
 </script>
@@ -324,17 +355,30 @@
         <div class="bg-gray-800 rounded-lg p-4">
           <h2 class="text-xl font-semibold mb-4">Frontal cortex</h2>
           <div class="space-y-4">
-            <div class="h-40 bg-gray-700 rounded-md p-2 overflow-y-auto">
-              <div class="text-gray-400 italic">Reasoning...</div>
+            <div
+              id="reasoning-box"
+              class="h-40 bg-gray-700 rounded-md p-2 overflow-y-auto"
+            >
+              {#if reasoningMessages.length === 0}
+                <div class="text-gray-400 italic">Reasoning...</div>
+              {:else}
+                {#each reasoningMessages as message}
+                  <div class="mb-2 text-sm">{message}</div>
+                {/each}
+              {/if}
             </div>
             <div class="flex space-x-2">
               <input
                 type="text"
+                bind:value={instruction}
                 placeholder="Instruction..."
                 class="flex-1 px-3 py-2 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:border-blue-500"
+                on:keydown={(e) => e.key === "Enter" && sendCommand()}
               />
               <button
-                class="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700"
+                on:click={sendCommand}
+                disabled={!isConnected}
+                class="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
               >
                 Send
               </button>

@@ -121,10 +121,10 @@ def parse_json_from_mixed_string(mixed_string):
 
 
 async def send_openai_request(
-    api_url: str = "http://localhost:8080/v1/chat/completions",
+    api_url: str = "https://openrouter.ai/api/v1/chat/completions",
     prompt: str = "hello",
-    system_prompt: str = "You are a helpful assistant.",
-    model: str = "/home/thuan/.local/share/cortexcpp/models/huggingface.co/unsloth/DeepSeek-R1-Distill-Llama-8B-GGUF/DeepSeek-R1-Distill-Llama-8B-Q6_K.gguf",
+    system_prompt: str = SYSTEM_PROMPT,
+    model: str = "qwen/qwq-32b:free",
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -136,17 +136,24 @@ async def send_openai_request(
         model (str, optional): The model to use. Defaults to "gpt-3.5-turbo".
 
     Returns:
-        dict: The API response
+        dict: The API response with full text content
     """
+    # Load API key from .env file
+    from dotenv import load_dotenv
+    import os
+
+    load_dotenv()
+    api_key = os.getenv("OPENROUTER_API_KEY")
+
     # Prepare the request payload
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ],
         "top_p": 0.9,
-        "temperature": 0.7,  # Optional: adjust creativity
+        "temperature": 0.1,  # Optional: adjust creativity
         "stream": True,
         # "max_tokens": 5000    # Optional: limit response length
     }
@@ -156,11 +163,20 @@ async def send_openai_request(
         try:
             # Send POST request to the API
             async with session.post(
-                api_url, json=payload, headers={"Content-Type": "application/json"}
+                api_url,
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}",
+                    "HTTP-Referer": "https://your-site.com",
+                    "X-Title": "Robot Navigation System",
+                },
             ) as response:
                 # Check if the request was successful
                 if response.status == 200:
                     # Parse and return the response
+                    full_text_content = ""
+
                     async for chunk in response.content:
                         if chunk:
                             # Decode the chunk (assumes JSON lines format)
@@ -173,8 +189,28 @@ async def send_openai_request(
 
                                 # Skip empty or "data: [DONE]" messages
                                 if chunk_str and chunk_str != "[DONE]":
-                                    # Parse JSON and yield the content
+                                    # Parse JSON and extract content
                                     chunk_data = json.loads(chunk_str)
+
+                                    # Extract the text content from the chunk
+                                    if (
+                                        "choices" in chunk_data
+                                        and len(chunk_data["choices"]) > 0
+                                    ):
+                                        if (
+                                            "delta" in chunk_data["choices"][0]
+                                            and "content"
+                                            in chunk_data["choices"][0]["delta"]
+                                        ):
+                                            content = chunk_data["choices"][0]["delta"][
+                                                "content"
+                                            ]
+                                            if content:
+                                                full_text_content += content
+
+                                    # Include the full text content in the chunk data
+                                    chunk_data["full_text"] = full_text_content
+
                                     yield chunk_data
                             except json.JSONDecodeError:
                                 # Some chunks might not be valid JSON

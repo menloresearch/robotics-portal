@@ -3,10 +3,7 @@ import json
 import uvicorn
 import asyncio
 import logging
-from typing import Dict, Set
-import weakref
 import torch
-import math
 import genesis as gs
 from go2_env import Go2Env
 import os
@@ -15,7 +12,7 @@ import pickle
 from rsl_rl.runners import OnPolicyRunner
 from utils import encode_numpy_array, send_openai_request, parse_json_from_mixed_string
 import random
-import base64
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,9 +26,10 @@ env: Go2Env = None
 
 def load_policy():
     global policy_walk, policy_stand, policy_right, policy_left, env
-    log_dir = f"checkpoints/go2-walking"
+    log_dir = "checkpoints/go2-walking"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open(f"checkpoints/go2-walking/cfgs.pkl", "rb"))
+        open("checkpoints/go2-walking/cfgs.pkl", "rb")
+    )
     reward_cfg["reward_scales"] = {}
 
     env = Go2Env(
@@ -44,37 +42,41 @@ def load_policy():
     )
 
     runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
-    resume_path = os.path.join(log_dir, f"model_500.pt")
+    resume_path = os.path.join(log_dir, "model_500.pt")
     runner.load(resume_path)
     policy_walk = runner.get_inference_policy(device="cuda:0")
 
     log_dir = f"checkpoints/go2-left"
+
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open(f"checkpoints/go2-left/cfgs.pkl", "rb"))
+        open("checkpoints/go2-left/cfgs.pkl", "rb")
+    )
     reward_cfg["reward_scales"] = {}
 
     runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
-    resume_path = os.path.join(log_dir, f"model_500.pt")
+    resume_path = os.path.join(log_dir, "model_500.pt")
     runner.load(resume_path)
     policy_left = runner.get_inference_policy(device="cuda:0")
 
-    log_dir = f"checkpoints/go2-right"
+    log_dir = "checkpoints/go2-right"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open(f"checkpoints/go2-right/cfgs.pkl", "rb"))
+        open("checkpoints/go2-right/cfgs.pkl", "rb")
+    )
     reward_cfg["reward_scales"] = {}
 
     runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
-    resume_path = os.path.join(log_dir, f"model_500.pt")
+    resume_path = os.path.join(log_dir, "model_500.pt")
     runner.load(resume_path)
     policy_right = runner.get_inference_policy(device="cuda:0")
 
-    log_dir = f"checkpoints/go2-stand"
+    log_dir = "checkpoints/go2-stand"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open(f"checkpoints/go2-stand/cfgs.pkl", "rb"))
+        open("checkpoints/go2-stand/cfgs.pkl", "rb")
+    )
     reward_cfg["reward_scales"] = {}
 
     runner = OnPolicyRunner(env, train_cfg, log_dir, device="cpu")
-    resume_path = os.path.join(log_dir, f"model_500.pt")
+    resume_path = os.path.join(log_dir, "model_500.pt")
     runner.load(resume_path)
     policy_stand = runner.get_inference_policy(device="cuda:0")
     return
@@ -90,7 +92,6 @@ async def lifespan(app: FastAPI):
 
 
 def transform(action, amplitude):
-
     if action == 0 or action == 1:  # right or left
         amplitude = amplitude * 70/45
 
@@ -116,6 +117,7 @@ app = FastAPI(lifespan=lifespan, title="Fully Self-Contained WebSocket Server")
 async def get():
     return {"message": "WebSocket server is running. Connect to /ws to use WebSocket."}
 
+
 # WebSocket endpoint with no external dependencies
 
 
@@ -135,7 +137,8 @@ async def websocket_endpoint(websocket: WebSocket):
     active_connections[client_id] = websocket
 
     logger.info(
-        f"Client {client_id} connected. Total clients: {len(active_connections)}")
+        f"Client {client_id} connected. Total clients: {len(active_connections)}"
+    )
 
     # Create message queue local to this websocket connection
     message_queue = asyncio.Queue()
@@ -160,8 +163,9 @@ async def websocket_endpoint(websocket: WebSocket):
     # Notify about new connection
     await send_personal_message(
         json.dumps({"type": "connection_established", "client_id": client_id}),
-        client_id
+        client_id,
     )
+
     # obs, _ = env.reset()
     # Create task for server-side processing
 
@@ -179,9 +183,7 @@ async def websocket_endpoint(websocket: WebSocket):
             stop = True
             while True:
                 try:
-
                     # Get message from queue (added by client handler)
-
                     if not message_queue.empty():
                         message = await message_queue.get()
                     else:
@@ -189,7 +191,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     # Process the message (server-side logic)
                     logger.info(
-                        f"Processing message from client {client_id}: {message}")
+                        f"Processing message from client {client_id}: {message}"
+                    )
 
                     # Example: Add some server-side processing
                     if message.get("type") == "zoom_in":
@@ -198,7 +201,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "response",
                             "content": f"Processed: {message.get('content', '')}",
                             "processed_at": asyncio.get_event_loop().time(),
-                            "original": message
+                            "original": message,
                         }
 
                         # Send processed result back to client
@@ -254,24 +257,21 @@ async def websocket_endpoint(websocket: WebSocket):
                         print("robot position:", env.position)
                         await asyncio.sleep(0.001)
 
+
                     else:
                         step = 0
                         stop = True
                 except WebSocketDisconnect:
-                    logger.error(
-                        f"Websocket disconnected")
+                    logger.error("Websocket disconnected")
                     raise
                 except Exception as e:
-                    logger.error(
-                        f"Error while rendering: {str(e)}")
-
+                    logger.error(f"Error while rendering: {str(e)}")
                 # Mark task as done
                 # message_queue.task_done()
         except asyncio.CancelledError:
             logger.info(f"Server processor for client {client_id} cancelled")
         except Exception as e:
-            logger.error(
-                f"Server processor error for client {client_id}: {str(e)}")
+            logger.error(f"Server processor error for client {client_id}: {str(e)}")
 
     # Create task for handling client messages
     async def client_handler(message_queue, actions_queue):
@@ -327,8 +327,7 @@ async def websocket_endpoint(websocket: WebSocket):
         except asyncio.CancelledError:
             logger.info(f"Client handler for client {client_id} cancelled")
         except Exception as e:
-            logger.error(
-                f"Client handler error for client {client_id}: {str(e)}")
+            logger.error(f"Client handler error for client {client_id}: {str(e)}")
             raise
 
     # Run both coroutines concurrently
@@ -340,8 +339,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         # Wait for either task to finish (usually due to disconnect)
         done, pending = await asyncio.wait(
-            [server_task, client_task],
-            return_when=asyncio.FIRST_COMPLETED
+            [server_task, client_task], return_when=asyncio.FIRST_COMPLETED
         )
 
         # Cancel the remaining task
@@ -361,7 +359,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Log remaining clients
         logger.info(
-            f"Client {client_id} removed. Remaining clients: {len(active_connections)}")
+            f"Client {client_id} removed. Remaining clients: {len(active_connections)}"
+        )
 
         # Notify about disconnection (optional)
 

@@ -16,6 +16,8 @@
   let frameSize = "0";
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
+  let secondaryCanvas: HTMLCanvasElement;
+  let secondaryCtx: CanvasRenderingContext2D;
   let isConnected = false;
 
   // Performance tracking
@@ -27,10 +29,18 @@
   onMount(() => {
     canvas = document.getElementById("imageDisplay") as HTMLCanvasElement;
     ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    secondaryCanvas = document.getElementById(
+      "secondaryDisplay",
+    ) as HTMLCanvasElement;
+    secondaryCtx = secondaryCanvas.getContext("2d") as CanvasRenderingContext2D;
 
-    // Clear canvas with gray background
-    ctx.fillStyle = "#f3f4f6";
+    // Clear main canvas with dark background
+    ctx.fillStyle = "#1f2937";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Clear secondary canvas with dark background
+    secondaryCtx.fillStyle = "#1f2937";
+    secondaryCtx.fillRect(0, 0, secondaryCanvas.width, secondaryCanvas.height);
 
     // Add zoom event listener
     canvas.addEventListener(
@@ -191,75 +201,154 @@
   }
 </script>
 
-<div class="container mx-auto max-w-3xl px-4 py-6">
-  <h1 class="text-2xl font-bold mb-4">WebSocket Image Stream</h1>
+<div class="flex justify-between items-center mb-4">
+  <div class="min-h-screen min-w-screen bg-gray-900 text-white p-4">
+    <h1 class="text-2xl font-bold mb-8">Portal Dashboard</h1>
+    <div class="grid grid-cols-12 gap-4">
+      <!-- Left Control Panel -->
+      <div class="col-span-2 bg-gray-800 rounded-lg p-4">
+        <h2 class="text-xl font-semibold mb-4">Control Panel</h2>
 
-  <div class="flex items-center space-x-3 mb-4">
-    <button
-      on:click={connect}
-      disabled={isConnected}
-      class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
-    >
-      Connect
-    </button>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <h3 class="text-sm font-medium text-gray-400">Connection</h3>
+            <div class="flex flex-col space-y-2">
+              <button
+                on:click={connect}
+                disabled={isConnected}
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+              >
+                Connect
+              </button>
+              <button
+                on:click={disconnect}
+                disabled={!isConnected}
+                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+              >
+                Disconnect
+              </button>
+            </div>
+          </div>
 
-    <button
-      on:click={disconnect}
-      disabled={!isConnected}
-      class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
-    >
-      Disconnect
-    </button>
+          <div class="space-y-2">
+            <h3 class="text-sm font-medium text-gray-400">
+              Frame Rate Control
+            </h3>
+            <div class="flex flex-col space-y-2">
+              <input
+                id="fpsInput"
+                type="number"
+                min="1"
+                max="60"
+                value="30"
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white"
+              />
+              <button
+                on:click={setFrameRate}
+                disabled={!isConnected}
+                class="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                Set FPS
+              </button>
+            </div>
+          </div>
 
-    <div class="flex items-center space-x-2 ml-4">
-      <input
-        id="fpsInput"
-        type="number"
-        min="1"
-        max="60"
-        value="30"
-        class="w-16 px-2 py-1 border border-gray-300 rounded-md"
-      />
-      <button
-        on:click={setFrameRate}
-        disabled={!isConnected}
-        class="px-2 py-1 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-      >
-        Set FPS
-      </button>
-    </div>
+          <div class="space-y-2">
+            <h3 class="text-sm font-medium text-gray-400">Camera Selection</h3>
+            <div class="grid grid-cols-1 gap-2">
+              {#each Array(3) as _, i}
+                <button
+                  on:click={() => switchCamera(i)}
+                  disabled={!isConnected}
+                  class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+                >
+                  Camera {i + 1}
+                </button>
+              {/each}
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <div class="flex items-center space-x-2 ml-4">
-      {#each Array(3) as _, i}
-        <button
-          on:click={() => switchCamera(i)}
-          disabled={!isConnected}
-          class="px-3 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          Camera {i + 1}
-        </button>
-      {/each}
-    </div>
-  </div>
+      <!-- Main Content Area -->
+      <div class="col-span-7 space-y-4">
+        <!-- Main Render View -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden">
+          <div class="p-2 bg-gray-700">
+            <h2 class="text-sm font-medium">Main Camera View</h2>
+          </div>
+          <canvas
+            id="imageDisplay"
+            width="640"
+            height="480"
+            class="w-full h-auto cursor-grab active:cursor-grabbing"
+          ></canvas>
+        </div>
+      </div>
 
-  <div class="border border-gray-300 rounded-md overflow-hidden shadow-sm">
-    <canvas
-      id="imageDisplay"
-      width="640"
-      height="480"
-      class="w-full h-auto cursor-grab active:cursor-grabbing"
-    ></canvas>
-  </div>
+      <!-- Right Side Panels -->
+      <div class="col-span-3 space-y-4">
+        <!-- Secondary Camera View -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden">
+          <div class="p-2 bg-gray-700">
+            <h2 class="text-sm font-medium">Secondary View</h2>
+          </div>
+          <canvas
+            id="secondaryDisplay"
+            width="320"
+            height="240"
+            class="w-full h-auto"
+          ></canvas>
+        </div>
 
-  <div
-    class="mt-4 bg-gray-100 p-4 rounded-md font-mono text-sm grid grid-cols-2 gap-x-4 gap-y-2"
-  >
-    <div>Connection: <span class={statusColor}>{connectionStatus}</span></div>
-    <div>Frames Received: <span class="font-semibold">{frameCount}</span></div>
-    <div>FPS: <span class="font-semibold">{fps}</span></div>
-    <div>Latency: <span class="font-semibold">{latency}</span> ms</div>
-    <div>
-      Last Frame Size: <span class="font-semibold">{frameSize}</span> KB
+        <!-- Telemetry Data -->
+        <div class="bg-gray-800 rounded-lg p-4">
+          <h2 class="text-xl font-semibold mb-4">Telemetry</h2>
+          <div class="space-y-2 font-mono text-sm">
+            <div class="flex justify-between">
+              <span>Connection:</span>
+              <span class={statusColor}>{connectionStatus}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Frames:</span>
+              <span class="font-semibold">{frameCount}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>FPS:</span>
+              <span class="font-semibold">{fps}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Latency:</span>
+              <span class="font-semibold">{latency} ms</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Frame Size:</span>
+              <span class="font-semibold">{frameSize} KB</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg p-4">
+          <h2 class="text-xl font-semibold mb-4">Frontal cortex</h2>
+          <div class="space-y-4">
+            <div class="h-40 bg-gray-700 rounded-md p-2 overflow-y-auto">
+              <div class="text-gray-400 italic">Reasoning...</div>
+            </div>
+            <div class="flex space-x-2">
+              <input
+                type="text"
+                placeholder="Instruction..."
+                class="flex-1 px-3 py-2 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:border-blue-500"
+              />
+              <button
+                class="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

@@ -1,6 +1,8 @@
 import numpy as np
 import base64
 import json
+
+import re
 import aiohttp
 SYSTEM_PROMPT = """
 # Robot Navigation System Prompt
@@ -76,6 +78,45 @@ Provide a JSON-formatted action sequence that can be directly parsed for robot m
 
 # API_URL = 
 
+
+def parse_json_from_mixed_string(mixed_string):
+    """
+    Extracts and parses JSON from a string that may contain other content.
+    
+    Args:
+        mixed_string (str): A string containing JSON somewhere within it
+        
+    Returns:
+        The parsed Python object from the first valid JSON found
+        
+    Raises:
+        ValueError: If no valid JSON is found in the string
+    """
+    # Look for content between ```json and ``` markers
+    json_pattern = r'```json\s*([\s\S]*?)\s*```'
+    matches = re.findall(json_pattern, mixed_string)
+    
+    if matches:
+        # Try to parse the first match
+        try:
+            return json.loads(matches[0])
+        except json.JSONDecodeError as e:
+            print(f"Found JSON block but failed to parse: {e}")
+    
+    # Alternative approach: try to find anything that looks like JSON objects or arrays
+    potential_json_pattern = r'(\{[\s\S]*\}|\[[\s\S]*\])'
+    potential_matches = re.findall(potential_json_pattern, mixed_string)
+    
+    for potential_match in potential_matches:
+        try:
+            parsed_data = json.loads(potential_match)
+            return parsed_data
+        except json.JSONDecodeError:
+            continue
+    
+    # If we get here, no valid JSON was found
+    return None
+
 async def send_openai_request(
     api_url: str = "http://localhost:8080/v1/chat/completions", 
     prompt: str = "hello", 
@@ -109,6 +150,7 @@ async def send_openai_request(
         ],
         "top_p":0.9,
         "temperature": 0.7,  # Optional: adjust creativity
+        "stream":True
         # "max_tokens": 5000    # Optional: limit response length
     }
 
@@ -124,7 +166,7 @@ async def send_openai_request(
                 # Check if the request was successful
                 if response.status == 200:
                     # Parse and return the response
-                    async for chunk in response.content.iter_any():
+                    async for chunk in response.content:
                         if chunk:
                             # Decode the chunk (assumes JSON lines format)
                             try:

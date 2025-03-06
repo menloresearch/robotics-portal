@@ -3,10 +3,7 @@ import json
 import uvicorn
 import asyncio
 import logging
-from typing import Dict, Set
-import weakref
 import torch
-import math
 import genesis as gs
 from go2_env import Go2Env
 import os
@@ -15,7 +12,6 @@ import pickle
 from rsl_rl.runners import OnPolicyRunner
 from utils import encode_numpy_array
 import random
-import base64
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

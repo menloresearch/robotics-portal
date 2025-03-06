@@ -175,6 +175,7 @@ class Go2Env:
         self.extras = dict()  # extra information for logging
         # self.cam.start_recording()
         # self.cam_first.start_recording()
+        self.position = [0,0,0]
 
     def _resample_commands(self, envs_idx):
         self.commands[envs_idx, 0] = gs_rand_float(
@@ -210,14 +211,18 @@ class Go2Env:
             self.global_gravity, inv_base_quat)
         self.dof_pos[:] = self.robot.get_dofs_position(self.motor_dofs)
         self.dof_vel[:] = self.robot.get_dofs_velocity(self.motor_dofs)
+        base_pose_cpu = self.base_pos[0].cpu().numpy()
+        base_euler_cpu = self.base_euler[0, 2].cpu().numpy()
+        self.position[:2] = base_pose_cpu[:2]
+        self.position[2] = float(base_euler_cpu)
         # print(self.base_euler)
-        self.cam.set_pose(pos=self.base_pos[0].cpu().numpy()-np.array([3*math.cos(math.radians(self.base_euler[0, 2].cpu().numpy())), 3*math.sin(math.radians(self.base_euler[0, 2].cpu().numpy())), -0.3]),
-                          lookat=(1000000*math.cos(math.radians(self.base_euler[0, 2].cpu().numpy())),
-                                  1000000*math.sin(math.radians(self.base_euler[0, 2].cpu().numpy())), 1))
+        self.cam.set_pose(pos=base_pose_cpu-np.array([3*math.cos(math.radians(base_euler_cpu)), 3*math.sin(math.radians(base_euler_cpu)), -0.3]),
+                          lookat=(1000000*math.cos(math.radians(base_euler_cpu)),
+                                  1000000*math.sin(math.radians(base_euler_cpu)), 1))
 
-        self.cam_first.set_pose(pos=self.base_pos[0].cpu().numpy()+np.array([0.3*math.cos(math.radians(self.base_euler[0, 2].cpu().numpy())), 0.3*math.sin(math.radians(self.base_euler[0, 2].cpu().numpy())), 0]),
-                                lookat=(1000000*math.cos(math.radians(self.base_euler[0, 2].cpu().numpy())),
-                                        1000000*math.sin(math.radians(self.base_euler[0, 2].cpu().numpy())), 1))
+        self.cam_first.set_pose(pos=base_pose_cpu+np.array([0.3*math.cos(math.radians(base_euler_cpu)), 0.3*math.sin(math.radians(base_euler_cpu)), 0]),
+                                lookat=(1000000*math.cos(math.radians(base_euler_cpu)),
+                                        1000000*math.sin(math.radians(base_euler_cpu)), 1))
         # resample commands
         envs_idx = (
             (self.episode_length_buf %
@@ -315,6 +320,17 @@ class Go2Env:
             self.episode_sums[key][envs_idx] = 0.0
 
         self._resample_commands(envs_idx)
+    # def reset_robot_only(self):
+    #     envs_idx = torch.arange(self.num_envs, device=self.device)
+    #     self.base_pos[envs_idx] = self.base_init_pos
+    #     self.base_quat[envs_idx] = self.base_init_quat.reshape(1, -1)
+    #     self.robot.set_pos(
+    #         self.base_pos[envs_idx], zero_velocity=False, envs_idx=envs_idx)
+    #     self.robot.set_quat(
+    #         self.base_quat[envs_idx], zero_velocity=False, envs_idx=envs_idx)
+    #     self.base_lin_vel[envs_idx] = 0
+    #     self.base_ang_vel[envs_idx] = 0
+    #     self.robot.zero_all_dofs_velocity(envs_idx)
 
     def reset(self):
         self.reset_buf[:] = True

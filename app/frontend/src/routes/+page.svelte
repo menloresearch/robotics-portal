@@ -1,7 +1,8 @@
 <!-- App.svelte -->
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { handleZoom } from "$lib/interacts.ts";
+  import { handleZoom } from "$lib/interacts";
+  import { viewRender } from "$lib/msgHandler";
 
   // State variables
   let socket: WebSocket | null = null;
@@ -94,55 +95,42 @@
 
     // Listen for messages
     socket.addEventListener("message", async (event) => {
-      const now = performance.now();
-
-      // Calculate message size
-      frameSize = (event.data.size / 1024).toFixed(2);
-
       try {
-        // If the message is a Blob (binary data)
-        if (event.data instanceof Blob) {
-          // Create object URL from blob
-          const objectUrl = URL.createObjectURL(event.data);
+        // Parse the message as JSON
+        const message = JSON.parse(event.data);
 
-          // Load and display the image
-          const img = new Image();
-          img.onload = () => {
-            // Draw image on canvas
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // Calculate message size (approximate for text data)
+        frameSize = (event.data.length / 1024).toFixed(2);
 
-            // Clean up object URL after image loads
-            URL.revokeObjectURL(objectUrl);
+        if (message.type === "connection_established" && message.client_id) {
+          console.info(`Connection with id ${message.client_id}`);
+        }
 
-            // Update metrics
-            frameCount++;
+        // Handle different message types
+        if (message.type === "streaming_view") {
+          [frameCount, lastFrameTime, fps, latency] = await viewRender(
+            message.main_view,
+            ctx,
+            canvas,
+            frameCount,
+            lastFrameTime,
+            fpsArray,
+            fps,
+            latencyArray,
+            latency,
+          );
 
-            // Calculate FPS
-            const elapsed = now - lastFrameTime;
-            if (lastFrameTime !== 0) {
-              const currentFps = 1000 / elapsed;
-              fpsArray.push(currentFps);
-              if (fpsArray.length > 30) fpsArray.shift();
-              fps = (
-                fpsArray.reduce((a, b) => a + b, 0) / fpsArray.length
-              ).toFixed(1);
-            }
-            lastFrameTime = now;
-
-            // Estimate latency using client-side timestamps
-            const currentLatency = performance.now() - now;
-            latencyArray.push(currentLatency);
-            if (latencyArray.length > 30) latencyArray.shift();
-            latency = (
-              latencyArray.reduce((a, b) => a + b, 0) / latencyArray.length
-            ).toFixed(1);
-          };
-          img.src = objectUrl;
-        } else {
-          // If it's not a blob, try to parse it as JSON
-          const message = JSON.parse(event.data);
-          // Handle any JSON control messages here if needed
-          console.log("Received JSON message:", message);
+          await viewRender(
+            message.god_view,
+            secondaryCtx,
+            secondaryCanvas,
+            frameCount,
+            lastFrameTime,
+            fpsArray,
+            fps,
+            latencyArray,
+            latency,
+          );
         }
       } catch (error) {
         console.error("Error processing message:", error);
@@ -256,15 +244,20 @@
           <div class="space-y-2">
             <h3 class="text-sm font-medium text-gray-400">Camera Selection</h3>
             <div class="grid grid-cols-1 gap-2">
-              {#each Array(3) as _, i}
-                <button
-                  on:click={() => switchCamera(i)}
-                  disabled={!isConnected}
-                  class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
-                >
-                  Camera {i + 1}
-                </button>
-              {/each}
+              <button
+                on:click={() => switchCamera(0)}
+                disabled={!isConnected}
+                class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+              >
+                First person view
+              </button>
+              <button
+                on:click={() => switchCamera(1)}
+                disabled={!isConnected}
+                class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+              >
+                Third person view
+              </button>
             </div>
           </div>
         </div>
@@ -295,8 +288,8 @@
           </div>
           <canvas
             id="secondaryDisplay"
-            width="320"
-            height="240"
+            width="640"
+            height="480"
             class="w-full h-auto"
           ></canvas>
         </div>

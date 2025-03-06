@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import logging
 import numpy as np
@@ -100,13 +101,19 @@ async def websocket_endpoint(websocket: WebSocket):
             pan = [0, 0, 0]
 
             # Convert numpy array to JPEG
-            success, encoded_frame = cv2.imencode(".jpg", frame)
+            success, encoded_frame = cv2.imencode(".jpeg", frame)
             if not success:
                 logger.error("Failed to encode frame")
                 continue
 
-            # Send the frame
-            await websocket.send_bytes(encoded_frame.tobytes())
+            # Convert to base64 string
+            base64_frame = base64.b64encode(encoded_frame.tobytes()).decode("utf-8")
+
+            # Create a JSON message with the base64-encoded image
+            frame_data = {"type": "frame", "image": base64_frame}
+
+            # Send the frame as text
+            await websocket.send_text(json.dumps(frame_data))
 
             # Maintain frame rate
             elapsed = time.time() - start_time

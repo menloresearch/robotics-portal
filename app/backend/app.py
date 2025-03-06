@@ -12,9 +12,10 @@ import pickle
 from rsl_rl.runners import OnPolicyRunner
 from utils import encode_numpy_array, send_openai_request, parse_json_from_mixed_string
 import random
+import numpy as np
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 policy_walk = None
@@ -121,6 +122,7 @@ async def get():
 # WebSocket endpoint with no external dependencies
 
 main = 0
+zoom = 0
 
 
 @app.websocket("/ws")
@@ -172,7 +174,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Create task for server-side processing
 
     async def server_processor(message_queue, actions_queue):
-        global main
+        global main, zoom
         list_actions = [policy_right, policy_left, policy_stand, policy_walk]
         actions_map = {
             "move_forward": 3,
@@ -187,6 +189,7 @@ async def websocket_endpoint(websocket: WebSocket):
             action = random.randint(0, 3)
             step = 0
             stop = True
+            def_pos = env.cam_god.pos
             while True:
                 try:
                     # Get message from queue (added by client handler)
@@ -201,16 +204,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     )
 
                     # Example: Add some server-side processing
-                    if message.get("type") == "zoom_in":
-                        # Simulate some processing delay
-                        processed_message = {
-                            "type": "response",
-                            "content": f"Processed: {message.get('content', '')}",
-                            "processed_at": asyncio.get_event_loop().time(),
-                            "original": message,
-                        }
-
-                        # Send processed result back to client
+                    if message.get("type") == "zoom":
+                        if message["direction"] == "in":
+                            if zoom > -0.8:
+                                zoom -= 0.1
+                        elif message["direction"] == "out":
+                            if zoom < 1:
+                                zoom += 0.1
 
                     elif message.get("type") == "stop":
                         stop = True
@@ -240,6 +240,11 @@ async def websocket_endpoint(websocket: WebSocket):
                             main_view, _, _, _ = env.cam_first.render()
                         else:
                             main_view, _, _, _ = env.cam.render()
+
+                        lookat = np.array(env.cam_god.lookat)
+                        env.cam_god.set_pose(
+                            pos=def_pos + zoom * (def_pos - lookat),
+                        )
                         god_view, _, _, _ = env.cam_god.render()
 
                         main_view = main_view[:, :, ::-1]
@@ -260,7 +265,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         await send_personal_message(
                             json.dumps(processed_message), client_id
                         )
-                        print("robot position:", env.position)
+                        # print("robot position:", env.position)
                         await asyncio.sleep(0.001)
 
                     else:
@@ -299,7 +304,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     robot_position = str(env.position)
                     content += ". Robot is at the position " + robot_position
                     async for chunk in send_openai_request(prompt=content):
-                        await send_personal_message(json.dumps(chunk), client_id)
+                        # await send_personal_message(json.dumps(chunk), client_id)
                         final_answer += chunk["choices"][0]["delta"].get("content", "")
                     actions = parse_json_from_mixed_string(final_answer)
                     print(final_answer)
@@ -323,9 +328,19 @@ async def websocket_endpoint(websocket: WebSocket):
                                 )
                             )
 
+                        await send_personal_message(
+                            json.dumps(
+                                {
+                                    "type": "reasoning",
+                                    "message": actions,
+                                }
+                            ),
+                            client_id,
+                        )
+
                 else:
                     await message_queue.put(message_data)
-                print("robot position:", env.position)
+                # print("robot position:", env.position)
 
                 # Acknowledge receipt immediately (optional)
                 # await send_personal_message(

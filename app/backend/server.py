@@ -6,10 +6,10 @@ import cv2
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from typing import Dict, List
+from typing import List
 import time
 
-from sim import render_cam
+from sim import build, render_cam
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,11 +30,23 @@ app.add_middleware(
 # Store active connections
 active_connections: List[WebSocket] = []
 
+scene = None
+cam = None
+robot = None
+jnts = None
+build_done = False  # Flag to indicate if build has been done
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    global scene, cam, robot, jnts, build_done  # Access global variables
+
     await websocket.accept()
     active_connections.append(websocket)
+
+    if not build_done:
+        scene, cam, robot, jnts = build()
+        build_done = True  # Set the flag to true after build is done
 
     # Default settings
     target_fps = 30
@@ -82,7 +94,9 @@ async def websocket_endpoint(websocket: WebSocket):
             start_time = time.time()
 
             def_pos = np.array([3.5, 0.0, 2.5])
-            frame, steps = render_cam(cam_id, steps, zoom, pan, def_pos)
+            frame, steps = render_cam(
+                scene, cam, robot, jnts, cam_id, steps, zoom, pan, def_pos
+            )
             pan = [0, 0, 0]
 
             # Convert numpy array to JPEG

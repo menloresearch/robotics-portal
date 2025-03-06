@@ -37,7 +37,7 @@ async def connect_websocket():
         uri = "ws://localhost:8000/ws"
         
         # Establish WebSocket connection
-        async with websockets.connect(uri, max_size=None) as websocket:
+        async with websockets.connect(uri, max_size=None, open_timeout=10,close_timeout=10) as websocket:
             print(f"Connected to WebSocket server: {uri}")
             
             # Optional: Send an initial message

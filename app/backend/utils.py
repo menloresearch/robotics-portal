@@ -14,16 +14,16 @@ You are an AI navigation planner for a robot operating in a 2D planar environmen
 
 ## Environment Constraints
 - Coordinate System:
-  - Robot position: (x, y, theta)
-    - x, y: Cartesian coordinates
-    - theta: Orientation angle (-180 to 180 degrees) with respect to the x axis
+  - Robot position: (x, y, angle)
+    - x, y: Cartesian coordinates in meter
+    - angle: Orientation angle (-180 to 180 degrees) with respect to the x axis. The unit is in DEGREE.
   - Coordinate system: Fixed Cartesian plane
   - Movement granularity: Discrete unit movements
 
 ## Allowed Actions
 1. `move_forward(distance)`: Move robot forward in current orientation
-2. `rotate_left(angle)`: Rotate robot counterclockwise
-3. `rotate_right(angle)`: Rotate robot clockwise
+2. `rotate_left(angle)`: Rotate robot counterclockwise by some degree of angle
+3. `rotate_right(angle)`: Rotate robot clockwise by some degree of angle
 4. `wait()`: Pause robot movement
 
 ## Output Requirements
@@ -124,7 +124,7 @@ async def send_openai_request(
     api_url: str = "https://openrouter.ai/api/v1/chat/completions",
     prompt: str = "hello",
     system_prompt: str = SYSTEM_PROMPT,
-    model: str = "qwen/qwq-32b",
+    model: str = "anthropic/claude-3.5-haiku-20241022",
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -152,8 +152,8 @@ async def send_openai_request(
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ],
-        "top_p": 0.9,
-        "temperature": 0.1,  # Optional: adjust creativity
+        "top_p": 0.1,
+        "temperature": 0,  # Optional: adjust creativity
         "stream": True,
         # "max_tokens": 5000    # Optional: limit response length
     }

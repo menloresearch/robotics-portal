@@ -304,14 +304,12 @@ async def websocket_endpoint(websocket: WebSocket):
                     robot_position = str(env.position)
                     content += ". Robot is at the position " + robot_position
                     async for chunk in send_openai_request(prompt=content):
-                        # await send_personal_message(json.dumps(chunk), client_id)
-
                         await send_personal_message(
                             json.dumps(
                                 {
                                     "type": "reasoning",
                                     "message": chunk["choices"][0]["delta"].get(
-                                        "reasoning", ""
+                                        "content", ""
                                     ),
                                 }
                             ),

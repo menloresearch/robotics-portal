@@ -305,8 +305,21 @@ async def websocket_endpoint(websocket: WebSocket):
                     content += ". Robot is at the position " + robot_position
                     async for chunk in send_openai_request(prompt=content):
                         # await send_personal_message(json.dumps(chunk), client_id)
+
+                        await send_personal_message(
+                            json.dumps(
+                                {
+                                    "type": "reasoning",
+                                    "message": chunk["choices"][0]["delta"].get(
+                                        "reasoning", ""
+                                    ),
+                                }
+                            ),
+                            client_id,
+                        )
+
                         final_answer += chunk["choices"][0]["delta"].get("content", "")
-                    actions = parse_json_from_mixed_string(final_answer)
+                        actions = parse_json_from_mixed_string(final_answer)
                     print(final_answer)
                     if actions is None:
                         await send_personal_message(
@@ -331,7 +344,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         await send_personal_message(
                             json.dumps(
                                 {
-                                    "type": "reasoning",
+                                    "type": "output",
                                     "message": actions,
                                 }
                             ),

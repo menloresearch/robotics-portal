@@ -29,7 +29,7 @@ You are an AI navigation planner for a robot operating in a 2D planar environmen
 ## Output Requirements
 Provide a JSON-formatted action sequence that can be directly parsed for robot movement:
 
-<output>
+```json
 {
   "actions": [
     {"type": "rotate_left", "angle": 45},
@@ -38,7 +38,7 @@ Provide a JSON-formatted action sequence that can be directly parsed for robot m
     {"type": "move_forward", "distance": 1}
   ]
 }
-</output>
+```
 
 ## Planning Constraints
 - Minimize total number of actions
@@ -124,7 +124,7 @@ async def send_openai_request(
     api_url: str = "https://openrouter.ai/api/v1/chat/completions",
     prompt: str = "hello",
     system_prompt: str = SYSTEM_PROMPT,
-    model: str = "qwen/qwq-32b:free",
+    model: str = "qwen/qwq-32b",
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -192,24 +192,24 @@ async def send_openai_request(
                                     # Parse JSON and extract content
                                     chunk_data = json.loads(chunk_str)
 
-                                    # Extract the text content from the chunk
-                                    if (
-                                        "choices" in chunk_data
-                                        and len(chunk_data["choices"]) > 0
-                                    ):
-                                        if (
-                                            "delta" in chunk_data["choices"][0]
-                                            and "content"
-                                            in chunk_data["choices"][0]["delta"]
-                                        ):
-                                            content = chunk_data["choices"][0]["delta"][
-                                                "content"
-                                            ]
-                                            if content:
-                                                full_text_content += content
-
-                                    # Include the full text content in the chunk data
-                                    chunk_data["full_text"] = full_text_content
+                                    # # Extract the text content from the chunk
+                                    # if (
+                                    #     "choices" in chunk_data
+                                    #     and len(chunk_data["choices"]) > 0
+                                    # ):
+                                    #     if (
+                                    #         "delta" in chunk_data["choices"][0]
+                                    #         and "reasoning"
+                                    #         in chunk_data["choices"][0]["delta"]
+                                    #     ):
+                                    #         content = chunk_data["choices"][0]["delta"][
+                                    #             "reasoning"
+                                    #         ]
+                                    #         if content:
+                                    #             full_text_content += content
+                                    #
+                                    # # Include the full text content in the chunk data
+                                    # chunk_data["full_text"] = full_text_content
 
                                     yield chunk_data
                             except json.JSONDecodeError:
@@ -255,4 +255,3 @@ def encode_numpy_array(arr):
 
     # Convert to string for easier handling
     return base64_encoded.decode("utf-8")
-

@@ -39,12 +39,16 @@ async def connect_websocket():
         uri = "ws://localhost:8000/ws"
 
         # Establish WebSocket connection
-        async with websockets.connect(uri, max_size=None, open_timeout=10,close_timeout=10) as websocket:
+        async with websockets.connect(
+            uri, max_size=None, open_timeout=10, close_timeout=10
+        ) as websocket:
             print(f"Connected to WebSocket server: {uri}")
 
             # Optional: Send an initial message
-            await websocket.send(json.dumps({"type":"command","content":"go to the dragon"}))
-            
+            await websocket.send(
+                json.dumps({"type": "command", "content": "go to the dragon"})
+            )
+
             # Continuously receive and display messages
             while True:
                 try:
@@ -53,35 +57,35 @@ async def connect_websocket():
 
                     # Parse the JSON message
                     processed_message = json.loads(message)
-                    if 'third_view' in processed_message.keys() or "first_view" in processed_message.keys() or "god_view" in processed_message.keys():
-                    # Decode each view
-                        third_view = decode_numpy_array(
-                            processed_message['third_view'], 
-                            tuple(processed_message['third_view_shape'])
+
+                    # if (
+                    #     "main_view" in processed_message.keys()
+                    #     or "god_view" in processed_message.keys()
+                    # ):
+                    #     # Decode each view
+                    #     main_view = decode_numpy_array(
+                    #         processed_message["main_view"], (640, 480, 3)
+                    #     )
+                    #
+                    #     god_view = decode_numpy_array(
+                    #         processed_message["god_view"], (640, 480, 3)
+                    #     )
+                    #
+                    #     # Display images using OpenCV
+                    #     cv2.imshow("Main View", main_view)
+                    #     cv2.imshow("God View", god_view)
+                    #
+                    #     # Wait for a key press (1ms) and check for 'q' to quit
+                    #     key = cv2.waitKey(1)
+                    #     if key & 0xFF == ord("q"):
+                    #         break
+                    if "choices" in processed_message.keys():
+                        print(
+                            processed_message["choices"][0]["delta"].get("content", ""),
+                            end="",
+                            flush=True,
                         )
-                        
-                        first_view = decode_numpy_array(
-                            processed_message['first_view'], 
-                            tuple(processed_message['first_view_shape'])
-                        )
-                        
-                        god_view = decode_numpy_array(
-                            processed_message['god_view'], 
-                            tuple(processed_message['god_view_shape'])
-                        )
-                        
-                        # Display images using OpenCV
-                        cv2.imshow('Third View', third_view)
-                        cv2.imshow('First View', first_view)
-                        cv2.imshow('God View', god_view)
-                        
-                        # Wait for a key press (1ms) and check for 'q' to quit
-                        key = cv2.waitKey(1)
-                        if key & 0xFF == ord('q'):
-                            break
-                    elif "choices" in processed_message.keys():
-                        print(processed_message["choices"][0]["delta"].get("content",""),end='', flush=True)
-                
+
                 except websockets.ConnectionClosed:
                     print("WebSocket connection closed.")
                     break
@@ -105,4 +109,3 @@ async def main():
 # Use asyncio to run the async main function
 if __name__ == "__main__":
     asyncio.run(main())
-

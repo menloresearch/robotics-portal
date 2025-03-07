@@ -21,7 +21,7 @@
   let secondaryCtx: CanvasRenderingContext2D;
   let isConnected = false;
   let instruction = "";
-  let reasoningMessages: string[] = [];
+  let reasoningMessages: string = "";
 
   // Performance tracking
   let lastFrameTime = 0;
@@ -85,7 +85,7 @@
 
   // Connect to WebSocket server
   function connect() {
-    socket = new WebSocket("ws://localhost:8000/ws");
+    socket = new WebSocket("ws://192.168.0.20:8000/ws");
 
     // Connection opened
     socket.addEventListener("open", (event) => {
@@ -133,15 +133,19 @@
             latencyArray,
             latency,
           );
-        } else if (message.type === "reasoning") {
+        } else if (message.type === "reasoning" && message.message) {
           // Handle reasoning messages
-          reasoningMessages = [
-            ...reasoningMessages,
-            typeof message.message === "object"
-              ? JSON.stringify(message.message, null, 2)
-              : message.message,
-          ];
-          // Auto-scroll to the latest message
+          reasoningMessages += message.message;
+
+          setTimeout(() => {
+            const reasoningBox = document.getElementById("reasoning-box");
+            if (reasoningBox) {
+              reasoningBox.scrollTop = reasoningBox.scrollHeight;
+            }
+          }, 0);
+        } else if (message.type === "output") {
+          reasoningMessages +=
+            "\n\n ACTION OUTPUT: \n\n" + JSON.stringify(message.message);
           setTimeout(() => {
             const reasoningBox = document.getElementById("reasoning-box");
             if (reasoningBox) {
@@ -216,79 +220,114 @@
       );
       // Clear the input after sending
       instruction = "";
+      reasoningMessages = "";
     }
   }
 </script>
 
 <div class="flex justify-between items-center mb-4">
   <div class="min-h-screen min-w-screen bg-gray-900 text-white p-4">
-    <h1 class="text-2xl font-bold mb-8">Portal Dashboard</h1>
+    <h1 class="text-2xl font-bold mb-8">
+      Portal Dashboard / Uranus Notebook (Dan's idea :3)
+    </h1>
     <div class="grid grid-cols-12 gap-4">
-      <!-- Left Control Panel -->
-      <div class="col-span-2 bg-gray-800 rounded-lg p-4">
-        <h2 class="text-xl font-semibold mb-4">Control Panel</h2>
+      <!-- Left Side Panels - Control Panel and Telemetry -->
+      <div class="col-span-2 space-y-4">
+        <!-- Control Panel -->
+        <div class="bg-gray-800 rounded-lg p-4">
+          <h2 class="text-xl font-semibold mb-4">Control Panel</h2>
 
-        <div class="space-y-4">
-          <div class="space-y-2">
-            <h3 class="text-sm font-medium text-gray-400">Connection</h3>
-            <div class="flex flex-col space-y-2">
-              <button
-                on:click={connect}
-                disabled={isConnected}
-                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
-              >
-                Connect
-              </button>
-              <button
-                on:click={disconnect}
-                disabled={!isConnected}
-                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
-              >
-                Disconnect
-              </button>
+          <div class="space-y-4">
+            <div class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-400">Connection</h3>
+              <div class="flex flex-col space-y-2">
+                <button
+                  on:click={connect}
+                  disabled={isConnected}
+                  class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+                >
+                  Connect
+                </button>
+                <button
+                  on:click={disconnect}
+                  disabled={!isConnected}
+                  class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+                >
+                  Disconnect
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-400">
+                Frame Rate Control
+              </h3>
+              <div class="flex flex-col space-y-2">
+                <input
+                  id="fpsInput"
+                  type="number"
+                  min="1"
+                  max="60"
+                  value="30"
+                  class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white"
+                />
+                <button
+                  on:click={setFrameRate}
+                  disabled={!isConnected}
+                  class="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  Set FPS
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-400">
+                Camera Selection
+              </h3>
+              <div class="grid grid-cols-1 gap-2">
+                <button
+                  on:click={() => switchCamera(0)}
+                  disabled={!isConnected}
+                  class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+                >
+                  First person view
+                </button>
+                <button
+                  on:click={() => switchCamera(1)}
+                  disabled={!isConnected}
+                  class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+                >
+                  Third person view
+                </button>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div class="space-y-2">
-            <h3 class="text-sm font-medium text-gray-400">
-              Frame Rate Control
-            </h3>
-            <div class="flex flex-col space-y-2">
-              <input
-                id="fpsInput"
-                type="number"
-                min="1"
-                max="60"
-                value="30"
-                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white"
-              />
-              <button
-                on:click={setFrameRate}
-                disabled={!isConnected}
-                class="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                Set FPS
-              </button>
+        <!-- Telemetry Data -->
+        <div class="bg-gray-800 rounded-lg p-4">
+          <h2 class="text-xl font-semibold mb-4">Telemetry</h2>
+          <div class="space-y-2 font-mono text-sm">
+            <div class="flex justify-between">
+              <span>Connection:</span>
+              <span class={statusColor}>{connectionStatus}</span>
             </div>
-          </div>
-
-          <div class="space-y-2">
-            <h3 class="text-sm font-medium text-gray-400">Camera Selection</h3>
-            <div class="grid grid-cols-1 gap-2">
-              <button
-                on:click={() => switchCamera(0)}
-                disabled={!isConnected}
-                class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
-              >
-                First person view
-              </button>
-              <button
-                on:click={() => switchCamera(1)}
-                disabled={!isConnected}
-                class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
-              >
-                Third person view
-              </button>
+            <div class="flex justify-between">
+              <span>Frames:</span>
+              <span class="font-semibold">{frameCount}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>FPS:</span>
+              <span class="font-semibold">{fps}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Latency:</span>
+              <span class="font-semibold">{latency} ms</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Frame Size:</span>
+              <span class="font-semibold">{frameSize} KB</span>
             </div>
           </div>
         </div>
@@ -325,49 +364,23 @@
           ></canvas>
         </div>
 
-        <!-- Telemetry Data -->
-        <div class="bg-gray-800 rounded-lg p-4">
-          <h2 class="text-xl font-semibold mb-4">Telemetry</h2>
-          <div class="space-y-2 font-mono text-sm">
-            <div class="flex justify-between">
-              <span>Connection:</span>
-              <span class={statusColor}>{connectionStatus}</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Frames:</span>
-              <span class="font-semibold">{frameCount}</span>
-            </div>
-            <div class="flex justify-between">
-              <span>FPS:</span>
-              <span class="font-semibold">{fps}</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Latency:</span>
-              <span class="font-semibold">{latency} ms</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Frame Size:</span>
-              <span class="font-semibold">{frameSize} KB</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-gray-800 rounded-lg p-4">
+        <!-- Frontal Cortex Panel (Reasoning) -->
+        <div class="bg-gray-800 rounded-lg p-4 flex flex-col">
           <h2 class="text-xl font-semibold mb-4">Frontal cortex</h2>
-          <div class="space-y-4">
+          <div class="space-y-4 flex-grow flex flex-col">
             <div
               id="reasoning-box"
-              class="h-40 bg-gray-700 rounded-md p-2 overflow-y-auto"
+              class="h-96 bg-gray-700 rounded-md p-3 overflow-y-auto flex-grow"
             >
               {#if reasoningMessages.length === 0}
                 <div class="text-gray-400 italic">Reasoning...</div>
               {:else}
-                {#each reasoningMessages as message}
-                  <div class="mb-2 text-sm">{message}</div>
-                {/each}
+                <div class="mb-2 text-sm whitespace-pre-wrap">
+                  {reasoningMessages}
+                </div>
               {/if}
             </div>
-            <div class="flex space-x-2">
+            <div class="flex space-x-2 mt-auto">
               <input
                 type="text"
                 bind:value={instruction}

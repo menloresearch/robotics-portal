@@ -1,0 +1,3 @@
+[submodule "robotics-models"]
+	path = robotics-models
+	url = git@github.com:janhq/robotics-models.git

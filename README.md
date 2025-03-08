@@ -1,4 +1,4 @@
-# Portal Simulation / Uranus Notebook???
+# Portal Simulation
 
 ## Installation step
 

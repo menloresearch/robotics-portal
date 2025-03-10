@@ -84,6 +84,7 @@
 
   // Connect to WebSocket server
   function connect() {
+    // socket = new WebSocket("ws://192.168.0.20:8000/ws");
     socket = new WebSocket("ws://192.168.0.20:8000/ws");
 
     // Connection opened

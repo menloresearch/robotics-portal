@@ -5,7 +5,7 @@ import asyncio
 import logging
 import torch
 import genesis as gs
-from go2_env import Go2Env
+from app.backend.screnes.go2.go2_env import Go2Env
 import os
 from contextlib import asynccontextmanager
 import pickle
@@ -13,7 +13,7 @@ from rsl_rl.runners import OnPolicyRunner
 from utils import encode_numpy_array, send_openai_request, parse_json_from_mixed_string
 import random
 import numpy as np
-
+from dotenv import load_dotenv
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -87,6 +87,7 @@ def load_policy():
 async def lifespan(app: FastAPI):
     # Load the ML mode
     gs.init()
+    load_dotenv()
     load_policy()
     yield
     # Clean up the ML models and release the resources
@@ -94,7 +95,7 @@ async def lifespan(app: FastAPI):
 
 def transform(action, amplitude):
     if action == 0 or action == 1:  # right or left
-        amplitude = amplitude * 70 / 45
+        amplitude = amplitude * 75 / 45
 
     elif action == 3:
         amplitude = amplitude * 120
@@ -154,15 +155,6 @@ async def websocket_endpoint(websocket: WebSocket):
             conn = active_connections[target_id]
             # if conn.client_state != WebSocketState.DISCONNECTED:
             await conn.send_text(message)
-
-    async def broadcast(message: str, exclude_id: int = None):
-        for conn_id, conn in list(active_connections.items()):
-            # if conn_id != exclude_id and conn.client_state != WebSocketState.DISCONNECTED:
-            try:
-                await conn.send_text(message)
-            except RuntimeError:
-                # Connection might have closed during iteration
-                pass
 
     # Notify about new connection
     await send_personal_message(

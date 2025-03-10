@@ -1,4 +1,3 @@
-<!-- App.svelte -->
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { handleZoom } from "$lib/interacts";

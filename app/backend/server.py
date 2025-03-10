@@ -10,7 +10,7 @@ import uvicorn
 from typing import List
 import time
 
-from sim import build, render_cam
+from research import build, render_cam
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -52,10 +52,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Default settings
     target_fps = 30
     frame_time = 1.0 / target_fps
-    cam_id = 0
     steps = 0
-    zoom = 0
-    pan = [0, 0, 0]
 
     try:
         while True:
@@ -77,28 +74,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     cam_id = int(message["camera"])
                     logger.info(f"Camera changed to {cam_id}")
 
-                if message.get("type") == "zoom":
-                    if message["direction"] == "in":
-                        if zoom > -0.8:
-                            zoom -= 0.1
-                    elif message["direction"] == "out":
-                        if zoom < 1:
-                            zoom += 0.1
-
-                # if message.get("type") == "pan":
-                #     pan = message["delta"]
-
             except asyncio.TimeoutError:
                 pass  # No message received, continue streaming
 
             # Stream the frame
             start_time = time.time()
 
-            def_pos = np.array([3.5, 0.0, 2.5])
-            frame, steps = render_cam(
-                scene, cam, robot, jnts, cam_id, steps, zoom, pan, def_pos
-            )
-            pan = [0, 0, 0]
+            frame, steps = render_cam(scene, cam, robot, jnts, steps)
 
             # Convert numpy array to JPEG
             success, encoded_frame = cv2.imencode(".jpeg", frame)
@@ -110,7 +92,7 @@ async def websocket_endpoint(websocket: WebSocket):
             base64_frame = base64.b64encode(encoded_frame.tobytes()).decode("utf-8")
 
             # Create a JSON message with the base64-encoded image
-            frame_data = {"type": "frame", "image": base64_frame}
+            frame_data = {"type": "streaming_view", "main_view": base64_frame}
 
             # Send the frame as text
             await websocket.send_text(json.dumps(frame_data))

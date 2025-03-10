@@ -28,9 +28,9 @@ env: Go2Env = None
 
 def load_policy():
     global policy_walk, policy_stand, policy_right, policy_left, env
-    log_dir = "checkpoints/go2-walking"
+    log_dir = "screnes/go2/checkpoints/go2-walking"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open("checkpoints/go2-walking/cfgs.pkl", "rb")
+        open("screnes/go2/checkpoints/go2-walking/cfgs.pkl", "rb")
     )
     reward_cfg["reward_scales"] = {}
 
@@ -48,10 +48,10 @@ def load_policy():
     runner.load(resume_path)
     policy_walk = runner.get_inference_policy(device="cuda:0")
 
-    log_dir = "checkpoints/go2-left"
+    log_dir = "screnes/go2/checkpoints/go2-left"
 
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open("checkpoints/go2-left/cfgs.pkl", "rb")
+        open("screnes/go2/checkpoints/go2-left/cfgs.pkl", "rb")
     )
     reward_cfg["reward_scales"] = {}
 
@@ -60,9 +60,9 @@ def load_policy():
     runner.load(resume_path)
     policy_left = runner.get_inference_policy(device="cuda:0")
 
-    log_dir = "checkpoints/go2-right"
+    log_dir = "screnes/go2/checkpoints/go2-right"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open("checkpoints/go2-right/cfgs.pkl", "rb")
+        open("screnes/go2/checkpoints/go2-right/cfgs.pkl", "rb")
     )
     reward_cfg["reward_scales"] = {}
 
@@ -71,9 +71,9 @@ def load_policy():
     runner.load(resume_path)
     policy_right = runner.get_inference_policy(device="cuda:0")
 
-    log_dir = "checkpoints/go2-stand"
+    log_dir = "screnes/go2/checkpoints/go2-stand"
     env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-        open("checkpoints/go2-stand/cfgs.pkl", "rb")
+        open("screnes/go2/checkpoints/go2-stand/cfgs.pkl", "rb")
     )
     reward_cfg["reward_scales"] = {}
 
@@ -150,7 +150,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Helper functions for WebSocket communication
 
     # Notify about new connection
-    await send_personal_message(
+    await send_personal_message(websocket,
         json.dumps({"type": "connection_established", "client_id": client_id}),
         client_id,
     )
@@ -249,7 +249,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "god_view": encode_numpy_array(god_view),
                         }
 
-                        await send_personal_message(
+                        await send_personal_message(websocket,
                             json.dumps(processed_message), client_id
                         )
                         # print("robot position:", env.position)
@@ -291,7 +291,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     robot_position = str(env.position)
                     content += ". Robot is at the position " + robot_position
                     async for chunk in send_openai_request(prompt=content):
-                        await send_personal_message(
+                        await send_personal_message(websocket,
                             json.dumps(
                                 {
                                     "type": "reasoning",
@@ -307,7 +307,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         actions = parse_json_from_mixed_string(final_answer)
                     print(final_answer)
                     if actions is None:
-                        await send_personal_message(
+                        await send_personal_message(websocket,
                             json.dumps(
                                 {
                                     "type": "error",
@@ -326,7 +326,7 @@ async def websocket_endpoint(websocket: WebSocket):
                                 )
                             )
 
-                        await send_personal_message(
+                        await send_personal_message(websocket,
                             json.dumps(
                                 {
                                     "type": "output",

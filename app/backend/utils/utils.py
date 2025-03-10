@@ -237,3 +237,7 @@ def encode_numpy_array(arr):
 
     # Convert to string for easier handling
     return base64_encoded.decode("utf-8")
+
+
+async def send_personal_message(websocket, message: str, target_id: int):
+    await websocket.send_text(message)

@@ -5,12 +5,13 @@ import asyncio
 import logging
 import torch
 import genesis as gs
-from app.backend.screnes.go2.go2_env import Go2Env
+from screnes.go2.go2_env import Go2Env
+from utils.utils import send_personal_message
 import os
 from contextlib import asynccontextmanager
 import pickle
 from rsl_rl.runners import OnPolicyRunner
-from utils import encode_numpy_array, send_openai_request, parse_json_from_mixed_string
+from utils.utils import encode_numpy_array, send_openai_request, parse_json_from_mixed_string
 import random
 import numpy as np
 from dotenv import load_dotenv
@@ -122,9 +123,6 @@ async def get():
 
 # WebSocket endpoint with no external dependencies
 
-main = 0
-zoom = 0
-
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -135,7 +133,7 @@ async def websocket_endpoint(websocket: WebSocket):
     global policy_right, policy_left, policy_stand, policy_walk, env
 
     active_connections = {}
-
+    
     # Accept connection
     await websocket.accept()
     client_id = id(websocket)
@@ -150,11 +148,6 @@ async def websocket_endpoint(websocket: WebSocket):
     actions_queue = asyncio.Queue()
 
     # Helper functions for WebSocket communication
-    async def send_personal_message(message: str, target_id: int):
-        if target_id in active_connections:
-            conn = active_connections[target_id]
-            # if conn.client_state != WebSocketState.DISCONNECTED:
-            await conn.send_text(message)
 
     # Notify about new connection
     await send_personal_message(
@@ -166,7 +159,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Create task for server-side processing
 
     async def server_processor(message_queue, actions_queue):
-        global main, zoom
+        # global main, zoom
         list_actions = [policy_right, policy_left, policy_stand, policy_walk]
         actions_map = {
             "move_forward": 3,
@@ -176,6 +169,8 @@ async def websocket_endpoint(websocket: WebSocket):
         }
 
         obs, _ = env.reset()
+        main = 0
+        zoom = 0
         try:
             steps = random.randint(100, 200)
             action = random.randint(0, 3)

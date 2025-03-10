@@ -71,7 +71,7 @@ packages-lock.json
 
 # Project specific logs
 *.log 
-
+.env
 
 # Genesis
 .genesis/

@@ -5,6 +5,7 @@ import cv2
 
 import re
 import aiohttp
+from config import Config
 
 SYSTEM_PROMPT = """
 # Robot Navigation System Prompt
@@ -121,10 +122,10 @@ def parse_json_from_mixed_string(mixed_string):
 
 
 async def send_openai_request(
-    api_url: str = "https://openrouter.ai/api/v1/chat/completions",
+    api_url: str = Config.openai_base_url,
     prompt: str = "hello",
     system_prompt: str = SYSTEM_PROMPT,
-    model: str = "anthropic/claude-3.5-haiku-20241022",
+    model: str = Config.llm_model,
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -142,8 +143,8 @@ async def send_openai_request(
     from dotenv import load_dotenv
     import os
 
-    load_dotenv()
-    api_key = os.getenv("OPENROUTER_API_KEY")
+    # load_dotenv()
+    api_key = os.getenv("API_KEY")
 
     # Prepare the request payload
     payload = {
@@ -191,25 +192,6 @@ async def send_openai_request(
                                 if chunk_str and chunk_str != "[DONE]":
                                     # Parse JSON and extract content
                                     chunk_data = json.loads(chunk_str)
-
-                                    # # Extract the text content from the chunk
-                                    # if (
-                                    #     "choices" in chunk_data
-                                    #     and len(chunk_data["choices"]) > 0
-                                    # ):
-                                    #     if (
-                                    #         "delta" in chunk_data["choices"][0]
-                                    #         and "reasoning"
-                                    #         in chunk_data["choices"][0]["delta"]
-                                    #     ):
-                                    #         content = chunk_data["choices"][0]["delta"][
-                                    #             "reasoning"
-                                    #         ]
-                                    #         if content:
-                                    #             full_text_content += content
-                                    #
-                                    # # Include the full text content in the chunk data
-                                    # chunk_data["full_text"] = full_text_content
 
                                     yield chunk_data
                             except json.JSONDecodeError:

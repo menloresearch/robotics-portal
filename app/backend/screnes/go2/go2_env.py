@@ -8,13 +8,12 @@ from genesis.utils.geom import (
     transform_quat_by_quat,
 )
 import numpy as np
-from screnes.screne_abstract import ScreneAbstract
 
 def gs_rand_float(lower, upper, shape, device):
     return (upper - lower) * torch.rand(size=shape, device=device) + lower
 
 
-class Go2Env(ScreneAbstract):
+class Go2Env:
     def __init__(
         self,
         num_envs,

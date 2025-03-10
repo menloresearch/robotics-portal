@@ -9,10 +9,3 @@ class ScreneAbstract(ABC):
     def __init__(self):
         super().__init__()
 
-    @abstractmethod
-    def step(self, actions):
-        pass
-
-    @abstractmethod
-    def reset(self):
-        pass

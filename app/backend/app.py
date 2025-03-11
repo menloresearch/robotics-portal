@@ -7,7 +7,7 @@ import genesis as gs
 from utils.utils import send_personal_message
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from screnes.go2.go2_sim import Go2Sim
+from scenes.go2.go2_sim import Go2Sim
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
@@ -63,12 +63,18 @@ async def websocket_endpoint(websocket: WebSocket):
     await send_personal_message(
         websocket,
         json.dumps(
-            {"type": "connection_established, initalizing ...", "client_id": client_id}
+            {"type": "connection_established", "client_id": client_id}
         ),
         client_id,
     )
     go2_sim = Go2Sim()
-
+    await send_personal_message(
+        websocket,
+        json.dumps(
+            {"type": "initialized", "client_id": client_id}
+        ),
+        client_id,
+    )
     # Run both coroutines concurrently
     server_task = asyncio.create_task(
         go2_sim.server_processor(message_queue, actions_queue, client_id, websocket)

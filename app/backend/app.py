@@ -8,7 +8,6 @@ from utils.utils import send_personal_message
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
-
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load the ML mode
-    gs.init()
+    
     load_dotenv()
     yield
     # Clean up the ML models and release the resources
@@ -41,7 +40,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Static variable to keep track of all active connections
     # Using class attribute pattern to avoid global variables
     # if not hasattr(websocket_endpoint, "active_connections"):
-
+    gs.init()
     active_connections = {}
 
     # Accept connection
@@ -103,9 +102,10 @@ async def websocket_endpoint(websocket: WebSocket):
         # Clean up - remove connection from active connections
         if client_id in active_connections:
             del active_connections[client_id]
+        gs.destroy()
 
         # Log remaining clients
-        logger.info(
+        logger.error(
             f"Client {client_id} removed. Remaining clients: {len(active_connections)}"
         )
 

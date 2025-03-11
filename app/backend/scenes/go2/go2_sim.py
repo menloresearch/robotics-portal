@@ -5,8 +5,8 @@ import asyncio
 import json
 import torch
 import pickle
-from screnes.screne_abstract import ScreneAbstract
-from screnes.go2.go2_env import Go2Env
+from scenes.scene_abstract import SceneAbstract
+from scenes.go2.go2_env import Go2Env
 from rsl_rl.runners import OnPolicyRunner
 from utils.utils import encode_numpy_array, send_personal_message, send_openai_request, parse_json_from_mixed_string
 import logging
@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 
-class Go2Sim(ScreneAbstract):
+class Go2Sim(SceneAbstract):
     def __init__(self):
         super().__init__()
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -22,9 +22,9 @@ class Go2Sim(ScreneAbstract):
 
     def load_policy(self,):
         # global policy_walk, policy_stand, policy_right, policy_left, env
-        log_dir = "screnes/go2/checkpoints/go2-walking"
+        log_dir = "scenes/go2/checkpoints/go2-walking"
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("screnes/go2/checkpoints/go2-walking/cfgs.pkl", "rb")
+            open("scenes/go2/checkpoints/go2-walking/cfgs.pkl", "rb")
         )
         reward_cfg["reward_scales"] = {}
 
@@ -42,10 +42,10 @@ class Go2Sim(ScreneAbstract):
         runner.load(resume_path)
         self.policy_walk = runner.get_inference_policy(device="cuda:0")
 
-        log_dir = "screnes/go2/checkpoints/go2-left"
+        log_dir = "scenes/go2/checkpoints/go2-left"
 
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("screnes/go2/checkpoints/go2-left/cfgs.pkl", "rb")
+            open("scenes/go2/checkpoints/go2-left/cfgs.pkl", "rb")
         )
         reward_cfg["reward_scales"] = {}
 
@@ -54,9 +54,9 @@ class Go2Sim(ScreneAbstract):
         runner.load(resume_path)
         self.policy_left = runner.get_inference_policy(device="cuda:0")
 
-        log_dir = "screnes/go2/checkpoints/go2-right"
+        log_dir = "scenes/go2/checkpoints/go2-right"
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("screnes/go2/checkpoints/go2-right/cfgs.pkl", "rb")
+            open("scenes/go2/checkpoints/go2-right/cfgs.pkl", "rb")
         )
         reward_cfg["reward_scales"] = {}
 
@@ -65,9 +65,9 @@ class Go2Sim(ScreneAbstract):
         runner.load(resume_path)
         self.policy_right = runner.get_inference_policy(device="cuda:0")
 
-        log_dir = "screnes/go2/checkpoints/go2-stand"
+        log_dir = "scenes/go2/checkpoints/go2-stand"
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("screnes/go2/checkpoints/go2-stand/cfgs.pkl", "rb")
+            open("scenes/go2/checkpoints/go2-stand/cfgs.pkl", "rb")
         )
         reward_cfg["reward_scales"] = {}
 
@@ -199,16 +199,23 @@ class Go2Sim(ScreneAbstract):
                         stop = True
                 except WebSocketDisconnect:
                     logger.error("Websocket disconnected")
-                    raise
+                    return
                 except Exception as e:
                     logger.error(f"Error while rendering: {str(e)}")
+                    await send_personal_message(websocket,
+                                                json.dumps(
+                                                    {"type": "error", "message": f"Error while rendering: {str(e)}"}), client_id
+                                                )
+                    return
                 # Mark task as done
                 # message_queue.task_done()
         except asyncio.CancelledError:
-            logger.info(f"Server processor for client {client_id} cancelled")
+            logger.error(f"Server processor for client {client_id} cancelled")
+            return
         except Exception as e:
             logger.error(
                 f"Server processor error for client {client_id}: {str(e)}")
+            return
 
     async def client_handler(self, message_queue: asyncio.Queue, actions_queue: asyncio.Queue, client_id: str, websocket: WebSocket):
         try:

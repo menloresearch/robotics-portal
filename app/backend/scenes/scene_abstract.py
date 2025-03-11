@@ -5,7 +5,7 @@ from asyncio import Queue
 from fastapi import APIRouter, WebSocket
 
 
-class ScreneAbstract(ABC):
+class SceneAbstract(ABC):
     def __init__(self):
         super().__init__()
 

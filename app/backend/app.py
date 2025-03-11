@@ -1,21 +1,14 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 import json
 import uvicorn
 import asyncio
 import logging
-import torch
 import genesis as gs
-from screnes.go2.go2_env import Go2Env
 from utils.utils import send_personal_message
-import os
 from contextlib import asynccontextmanager
-import pickle
-from rsl_rl.runners import OnPolicyRunner
-from utils.utils import encode_numpy_array, send_openai_request, parse_json_from_mixed_string
-import random
-import numpy as np
 from dotenv import load_dotenv
 from screnes.go2.go2_sim import Go2Sim
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -49,9 +42,8 @@ async def websocket_endpoint(websocket: WebSocket):
     # Using class attribute pattern to avoid global variables
     # if not hasattr(websocket_endpoint, "active_connections"):
 
-    
     active_connections = {}
-    
+
     # Accept connection
     await websocket.accept()
     client_id = id(websocket)
@@ -68,16 +60,22 @@ async def websocket_endpoint(websocket: WebSocket):
     # Helper functions for WebSocket communication
 
     # Notify about new connection
-    await send_personal_message(websocket,
-        json.dumps({"type": "connection_established, initalizing ...", "client_id": client_id}),
+    await send_personal_message(
+        websocket,
+        json.dumps(
+            {"type": "connection_established, initalizing ...", "client_id": client_id}
+        ),
         client_id,
     )
     go2_sim = Go2Sim()
 
-    
     # Run both coroutines concurrently
-    server_task = asyncio.create_task(go2_sim.server_processor(message_queue, actions_queue, client_id, websocket))
-    client_task = asyncio.create_task(go2_sim.client_handler(message_queue, actions_queue, client_id, websocket))
+    server_task = asyncio.create_task(
+        go2_sim.server_processor(message_queue, actions_queue, client_id, websocket)
+    )
+    client_task = asyncio.create_task(
+        go2_sim.client_handler(message_queue, actions_queue, client_id, websocket)
+    )
 
     try:
         # Wait for either task to finish (usually due to disconnect)

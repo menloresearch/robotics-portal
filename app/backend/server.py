@@ -2,7 +2,6 @@ import asyncio
 import base64
 import json
 import logging
-import numpy as np
 import cv2
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +9,7 @@ import uvicorn
 from typing import List
 import time
 
-from research import build, render_cam
+from scenes.desk.sim import BeatTheDesk
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,28 +30,23 @@ app.add_middleware(
 # Store active connections
 active_connections: List[WebSocket] = []
 
-scene = None
-cam = None
-robot = None
-jnts = None
-build_done = False  # Flag to indicate if build has been done
+sim = None
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global scene, cam, robot, jnts, build_done  # Access global variables
+    global sim
 
     await websocket.accept()
     active_connections.append(websocket)
 
-    if not build_done:
-        scene, cam, robot, jnts = build()
-        build_done = True  # Set the flag to true after build is done
+    if sim is None:
+        sim = BeatTheDesk()
+        sim.init_build()
 
     # Default settings
     target_fps = 30
     frame_time = 1.0 / target_fps
-    steps = 0
 
     try:
         while True:
@@ -80,7 +74,8 @@ async def websocket_endpoint(websocket: WebSocket):
             # Stream the frame
             start_time = time.time()
 
-            frame, steps = render_cam(scene, cam, robot, jnts, steps)
+            steps = sim.step()
+            frame = sim.render_cam()
 
             # Convert numpy array to JPEG
             success, encoded_frame = cv2.imencode(".jpeg", frame)

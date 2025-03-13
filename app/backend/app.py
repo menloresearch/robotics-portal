@@ -8,6 +8,7 @@ from utils.utils import send_personal_message
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
+from scenes.g1.g1_sim import G1Sim
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -66,7 +67,16 @@ async def websocket_endpoint(websocket: WebSocket):
         ),
         client_id,
     )
-    go2_sim = Go2Sim()
+    while True:
+        data = await websocket.receive_text()
+        message_data = json.loads(data)
+        if message_data.get("type") == "env":
+            if message_data.get("env") == "go2":
+                go2_sim = Go2Sim()
+            else:
+                go2_sim = G1Sim()
+            
+            break
     await send_personal_message(
         websocket,
         json.dumps(
@@ -108,7 +118,7 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.error(
             f"Client {client_id} removed. Remaining clients: {len(active_connections)}"
         )
-
+    gs.destroy()
         # Notify about disconnection (optional)
 
 

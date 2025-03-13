@@ -10,7 +10,7 @@ class BeatTheDesk:
             [-87, -87, -87, -87, -12, -12, -12, -100, -100],
             [87, 87, 87, 87, 12, 12, 12, 100, 100],
         ]
-        self.init_dofs_pos = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.init_dofs_pos = [0, 0, 0, 0, 0, 0, 0, 1, 1]
 
         self.arm_jnt_names = [
             "joint1",
@@ -48,10 +48,14 @@ class BeatTheDesk:
             ),
             show_viewer=False,
         )
+        self.end_effector = None
+
         self.robot = None
         self.cam = None
         self.steps = 0
         self.objs = []
+        self.begin = []
+        self.end = []
 
     # convert name into index number for ease of control
 
@@ -59,14 +63,16 @@ class BeatTheDesk:
         _ = self.scene.add_entity(gs.morphs.Plane())
         _ = self.scene.add_entity(
             gs.morphs.MJCF(
-                file="furniture_sim/simpleTable.xml",
+                file="furniture/simpleTable.xml",
+                pos=(0.4, 0, 0),
             ),
         )
 
         self.robot = self.scene.add_entity(
             gs.morphs.MJCF(
                 file="xml/franka_emika_panda/panda.xml",
-                pos=(-0.4, 0, 0.75),
+                pos=(0, 0, 0.75),
+                euler=(0, 0, 0),
             ),
         )
 
@@ -106,7 +112,7 @@ class BeatTheDesk:
         )
 
         self.cam.set_pose(
-            pos=(3.5, 0, 2.5),
+            pos=(4.5, 0, 2.5),
             lookat=(0, 0, 1.2),
         )
 
@@ -124,39 +130,65 @@ class BeatTheDesk:
 
     def step(self):
         self.scene.step()
-        self.steps += 1
 
+        if self.steps < 200:
+            self.robot.control_dofs_position(self.begin[self.steps])
+
+        if self.steps > 300 and self.steps < 400:
+            self.grasp(False)
+
+        if self.steps > 400 and self.steps < 500:
+            self.grasp(True)
+
+        if self.steps > 500 and self.steps < 700:
+            self.robot.control_dofs_position(
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                self.arm_dofs_idx,
+            )
+
+        # if self.steps >= 200 and self.steps < 400:
+        #     self.robot.control_dofs_position(self.end[self.steps - 200])
+
+        self.steps += 1
         return self.steps
 
     def generate_random_objects(self):
         obj = self.scene.add_entity(
             gs.morphs.Box(
-                size=(0.04, 0.04, 0.04),
-                pos=(-0.5, -0.3, 0.8),
-            )
-        )
-
-        obj1 = self.scene.add_entity(
-            gs.morphs.Sphere(
-                radius=0.025,
-                pos=(0.2, 0.1, 0.8),
+                size=(0.05, 0.05, 0.05),
+                pos=(0.6, 0, 0.8),
             )
         )
 
         self.objs.append(obj)
-        self.objs.append(obj1)
 
-    def move_to(self, pos):
-        pos = [-0.5, -0.3, 0.75, 0, 0, 0, 0]
-        end_effector = self.robot.get_link("hand")
+    def path_to(self, pos):
+        self.end_effector = self.robot.get_link("hand")
+
         qpos = self.robot.inverse_kinematics(
-            link=end_effector,
+            link=self.end_effector,
             pos=np.array(pos[0:3]),
-            euler=np.array(pos[3:6]),
+            quat=np.array([0, 1, 0, 0]),
+            init_qpos=self.init_dofs_pos,
         )
+
         path = self.robot.plan_path(
+            qpos_start=self.init_dofs_pos,
             qpos_goal=qpos,
+            ignore_collision=True,
             num_waypoints=200,  # 2s duration
         )
 
         return path
+
+    def grasp(self, close):
+        if close:
+            self.robot.control_dofs_position(
+                [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                self.arm_dofs_idx,
+            )
+        else:
+            self.robot.control_dofs_position(
+                [0, 0, 0, 0, 0, 0, 0, 1, 1],
+                self.arm_dofs_idx,
+            )

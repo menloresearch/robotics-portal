@@ -83,6 +83,13 @@ class BeatTheDeskEnv:
             GUI=False,
         )
 
+        self.scene.add_entity(
+            gs.morphs.Box(
+                size=(0.05, 0.05, 0.05),
+                pos=(0.6, 0, 0.8),
+            )
+        )
+
         self.scene.build()
 
         self.robot.set_dofs_kp(
@@ -108,13 +115,6 @@ class BeatTheDeskEnv:
         self.robot.set_dofs_position(
             np.array(self.init_dofs_pos),
             self.arm_dofs_idx,
-        )
-
-        self.scene.add_entity(
-            gs.morphs.Box(
-                size=(0.05, 0.05, 0.05),
-                pos=(0.6, 0, 0.8),
-            )
         )
 
     def step(self):

@@ -2,13 +2,12 @@ import genesis as gs
 import numpy as np
 import logging
 
-from app.backend.scenes.scene_abstract import SceneAbstract
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 
-class BeatTheDesk(SceneAbstract):
+class BeatTheDeskEnv:
     def __init__(self) -> None:
         self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
         self.kv = [450, 450, 350, 350, 200, 200, 200, 10, 10]
@@ -16,7 +15,7 @@ class BeatTheDesk(SceneAbstract):
             [-87, -87, -87, -87, -12, -12, -12, -100, -100],
             [87, 87, 87, 87, 12, 12, 12, 100, 100],
         ]
-        self.init_dofs_pos = [0, 0, 0, 0, 0, 0, 0, 1, 1]
+        self.init_dofs_pos = [0, 0, 0, 0, 0, 0, 0, 0.04, 0.04]
 
         self.arm_jnt_names = [
             "joint1",
@@ -32,28 +31,6 @@ class BeatTheDesk(SceneAbstract):
 
         self.arm_dofs_idx = None
 
-        gs.init(
-            backend=gs.gs_backend.gpu,
-            precision="32",
-        )
-
-        self.scene = gs.Scene(
-            viewer_options=gs.options.ViewerOptions(
-                camera_pos=(
-                    3,
-                    0,
-                    2.5,
-                ),  # the position of the camera physically in meter
-                camera_lookat=(
-                    0.0,
-                    0.0,
-                    0.5,
-                ),  # the position that the camera will look at
-                camera_fov=30,
-                max_FPS=60,
-            ),
-            show_viewer=False,
-        )
         self.end_effector = None
 
         self.robot = None
@@ -63,13 +40,21 @@ class BeatTheDesk(SceneAbstract):
         self.begin = []
         self.end = []
 
-    # convert name into index number for ease of control
+        self.scene = gs.Scene(
+            viewer_options=gs.options.ViewerOptions(
+                camera_pos=(3, 0, 2.5),
+                camera_lookat=(0.0, 0.0, 0.5),
+                camera_fov=30,
+                max_FPS=60,
+            ),
+            show_viewer=False,
+            show_FPS=False,
+        )
 
-    def init_build(self):
         _ = self.scene.add_entity(gs.morphs.Plane())
         _ = self.scene.add_entity(
             gs.morphs.MJCF(
-                file="furniture/simpleTable.xml",
+                file="scenes/desk/furniture/simpleTable.xml",
                 pos=(0.4, 0, 0),
             ),
         )
@@ -84,11 +69,19 @@ class BeatTheDesk(SceneAbstract):
 
         self.cam = self.scene.add_camera(
             res=(640, 480),
+            pos=(4.5, 0, 2.5),
+            lookat=(0, 0, 1.2),
             fov=30,
             GUI=False,
         )
 
-        self.generate_random_objects()
+        self.cam_god = self.scene.add_camera(
+            res=(640, 480),
+            pos=(0, 4.5, 2.5),
+            lookat=(0, 0, 1.2),
+            fov=30,
+            GUI=False,
+        )
 
         self.scene.build()
 
@@ -117,22 +110,12 @@ class BeatTheDesk(SceneAbstract):
             self.arm_dofs_idx,
         )
 
-        self.cam.set_pose(
-            pos=(4.5, 0, 2.5),
-            lookat=(0, 0, 1.2),
+        self.scene.add_entity(
+            gs.morphs.Box(
+                size=(0.05, 0.05, 0.05),
+                pos=(0.6, 0, 0.8),
+            )
         )
-
-    def render_cam(self):
-        """Render the camera view with the specified id.
-
-        Args:
-            id (int, optional): Camera index to render from. Defaults to 0.
-
-        Returns:
-            numpy.ndarray: The rendered image from the camera.
-        """
-        out = self.cam.render()
-        return out[0][:, :, ::-1]
 
     def step(self):
         self.scene.step()
@@ -152,21 +135,8 @@ class BeatTheDesk(SceneAbstract):
                 self.arm_dofs_idx,
             )
 
-        # if self.steps >= 200 and self.steps < 400:
-        #     self.robot.control_dofs_position(self.end[self.steps - 200])
-
         self.steps += 1
         return self.steps
-
-    def generate_random_objects(self):
-        obj = self.scene.add_entity(
-            gs.morphs.Box(
-                size=(0.05, 0.05, 0.05),
-                pos=(0.6, 0, 0.8),
-            )
-        )
-
-        self.objs.append(obj)
 
     def path_to(self, pos):
         self.end_effector = self.robot.get_link("hand")
@@ -195,6 +165,6 @@ class BeatTheDesk(SceneAbstract):
             )
         else:
             self.robot.control_dofs_position(
-                [0, 0, 0, 0, 0, 0, 0, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0.04, 0.04],
                 self.arm_dofs_idx,
             )

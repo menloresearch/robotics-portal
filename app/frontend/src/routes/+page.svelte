@@ -21,7 +21,8 @@
   let selectedEnvironment = "go2";
   let environments = [
     { id: "go2", name: "Go2" },
-    { id: "g1", name: "G1" },
+    // { id: "g1", name: "G1" },
+    { id: "arm", name: "Arm" },
   ];
 
   // Performance tracking

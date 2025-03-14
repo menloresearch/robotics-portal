@@ -21,7 +21,7 @@
   let selectedEnvironment = "go2";
   let environments = [
     { id: "go2", name: "Go2" },
-    // { id: "g1", name: "G1" },
+    { id: "g1", name: "G1" },
     { id: "arm", name: "Arm" },
   ];
 
@@ -88,7 +88,7 @@
   // Connect to WebSocket server
   function connect() {
     // socket = new WebSocket("ws:/localhost:8000/ws");
-    socket = new WebSocket("ws://192.168.0.20:8000/ws");
+    socket = new WebSocket("ws://localhost:8000/ws");
 
     // Connection opened
     socket.addEventListener("open", (event) => {

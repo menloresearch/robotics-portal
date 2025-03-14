@@ -65,8 +65,16 @@ class G1Sim(SceneAbstract):
         runner.load(resume_path)
         self.policy_right = runner.get_inference_policy(device="cuda:0")
 
-        self.policy_stand = lambda x: torch.tensor(
-            [[0, 0, -0.3, 0.3, -0.2, 0, 0, 0, -0.3, 0.3, -0.2, 0]], device="cuda:0")
+        log_dir = "scenes/g1/checkpoints/g1-stand"
+        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
+            open("scenes/g1/checkpoints/g1-stand/cfgs.pkl", "rb")
+        )
+        reward_cfg["reward_scales"] = {}
+
+        runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
+        resume_path = os.path.join(log_dir, "model_1000.pt")
+        runner.load(resume_path)
+        self.policy_stand = runner.get_inference_policy(device="cuda:0")
         self.list_actions = [self.policy_right,
                              self.policy_left, self.policy_stand, self.policy_walk]
         return
@@ -169,10 +177,23 @@ class G1Sim(SceneAbstract):
                                 actions = self.list_actions[2](obs)  # stand
                                 obs, _, rews, dones, infos = self.env.step(
                                     actions)
+                                print("standing")
                             else:
-                                actions = self.list_actions[action](obs)
-                                obs, _, rews, dones, infos = self.env.step(
-                                    actions)
+                                actions = self.list_actions[action](
+                                    obs,)
+                                if action == 3:
+                                    obs, _, rews, dones, infos = self.env.step(
+                                        actions, x=0.5)
+                                elif action == 1:
+                                    obs, _, rews, dones, infos = self.env.step(
+                                        actions, y=0.5)
+                                elif action == 0:
+                                    obs, _, rews, dones, infos = self.env.step(
+                                        actions, y=-0.5)
+                                else:
+                                    obs, _, rews, dones, infos = self.env.step(
+                                        actions)
+
                         processed_message = {
                             "type": "streaming_view",
                             "main_view": encode_numpy_array(main_view),

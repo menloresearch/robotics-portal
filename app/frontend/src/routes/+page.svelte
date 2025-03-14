@@ -16,6 +16,8 @@
   let secondaryCanvas: HTMLCanvasElement;
   let secondaryCtx: CanvasRenderingContext2D;
   let isConnected = false;
+  let isLoading = false;
+  let receivedFirstFrame = false;
   let instruction = "";
   let reasoningMessages: string = "";
   let selectedEnvironment = "go2";
@@ -87,8 +89,11 @@
 
   // Connect to WebSocket server
   function connect() {
+    isLoading = true;
+    receivedFirstFrame = false;
+
     // socket = new WebSocket("ws:/localhost:8000/ws");
-    socket = new WebSocket("ws://localhost:8000/ws");
+    socket = new WebSocket("ws://192.168.0.20:8000/ws");
 
     // Connection opened
     socket.addEventListener("open", (event) => {
@@ -96,6 +101,7 @@
       connectionStatus = "Connected";
       statusColor = "text-green-500";
       isConnected = true;
+      // Keep isLoading true until we receive the first frame
 
       // Send environment selection message
       socket.send(
@@ -121,6 +127,12 @@
 
         // Handle different message types
         if (message.type === "streaming_view") {
+          // If this is the first frame, stop the loading state
+          if (!receivedFirstFrame) {
+            receivedFirstFrame = true;
+            isLoading = false;
+          }
+
           [frameCount, lastFrameTime, fps, latency] = await viewRender(
             message.main_view,
             ctx,
@@ -175,6 +187,7 @@
       connectionStatus = "Disconnected";
       statusColor = "text-red-500";
       isConnected = false;
+      isLoading = false;
     });
 
     // Connection error
@@ -183,6 +196,7 @@
       connectionStatus = "Error";
       statusColor = "text-red-500";
       isConnected = false;
+      isLoading = false;
     });
   }
 
@@ -192,6 +206,8 @@
       socket.close();
       socket = null;
     }
+    isLoading = false;
+    receivedFirstFrame = false;
 
     // Clear main canvas with dark background
     if (ctx && canvas) {
@@ -289,10 +305,36 @@
               <div class="flex flex-col space-y-2">
                 <button
                   on:click={connect}
-                  disabled={isConnected}
-                  class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+                  disabled={isConnected || isLoading}
+                  class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed relative"
                 >
-                  Connect
+                  {#if isLoading}
+                    <span class="flex items-center justify-center">
+                      <svg
+                        class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Connecting...
+                    </span>
+                  {:else}
+                    Connect
+                  {/if}
                 </button>
                 <button
                   on:click={disconnect}
@@ -393,12 +435,43 @@
           <div class="p-2 bg-gray-700">
             <h2 class="text-sm font-medium">Main Camera View</h2>
           </div>
-          <canvas
-            id="imageDisplay"
-            width="640"
-            height="480"
-            class="w-full h-auto cursor-grab active:cursor-grabbing"
-          ></canvas>
+          <div class="relative">
+            <canvas
+              id="imageDisplay"
+              width="640"
+              height="480"
+              class="w-full h-auto cursor-grab active:cursor-grabbing"
+            ></canvas>
+            {#if isLoading && isConnected}
+              <div
+                class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70"
+              >
+                <div class="text-center">
+                  <svg
+                    class="animate-spin h-10 w-10 mx-auto text-blue-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <p class="mt-2 text-white">Loading stream...</p>
+                </div>
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
 
@@ -409,12 +482,43 @@
           <div class="p-2 bg-gray-700">
             <h2 class="text-sm font-medium">Secondary View</h2>
           </div>
-          <canvas
-            id="secondaryDisplay"
-            width="640"
-            height="480"
-            class="w-full h-auto"
-          ></canvas>
+          <div class="relative">
+            <canvas
+              id="secondaryDisplay"
+              width="640"
+              height="480"
+              class="w-full h-auto"
+            ></canvas>
+            {#if isLoading && isConnected}
+              <div
+                class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70"
+              >
+                <div class="text-center">
+                  <svg
+                    class="animate-spin h-8 w-8 mx-auto text-blue-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      class="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      stroke-width="4"
+                    ></circle>
+                    <path
+                      class="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <p class="mt-2 text-white text-sm">Loading stream...</p>
+                </div>
+              </div>
+            {/if}
+          </div>
         </div>
 
         <!-- Frontal Cortex Panel (Reasoning) -->

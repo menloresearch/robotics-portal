@@ -1,194 +1,133 @@
-import genesis as gs
-import numpy as np
+import asyncio
+import json
+import logging
+
+from fastapi import WebSocket, WebSocketDisconnect
+from scenes.scene_abstract import SceneAbstract
+from utils.utils import (
+    encode_numpy_array,
+    send_personal_message,
+)
+
+from scenes.desk.desk_env import BeatTheDeskEnv
+
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
 
 
-class BeatTheDesk:
+class BeatTheDeskSim(SceneAbstract):
     def __init__(self) -> None:
-        self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
-        self.kv = [450, 450, 350, 350, 200, 200, 200, 10, 10]
-        self.force_range = [
-            [-87, -87, -87, -87, -12, -12, -12, -100, -100],
-            [87, 87, 87, 87, 12, 12, 12, 100, 100],
-        ]
-        self.init_dofs_pos = [0, 0, 0, 0, 0, 0, 0, 1, 1]
+        super().__init__()
+        self.env = BeatTheDeskEnv()
 
-        self.arm_jnt_names = [
-            "joint1",
-            "joint2",
-            "joint3",
-            "joint4",
-            "joint5",
-            "joint6",
-            "joint7",
-            "finger_joint1",
-            "finger_joint2",
-        ]
+    async def server_processor(
+        self,
+        message_queue: asyncio.Queue,
+        actions_queue: asyncio.Queue,
+        client_id: str,
+        websocket: WebSocket,
+    ):
+        zoom = 0
 
-        self.arm_dofs_idx = None
+        try:
+            steps = 100
+            step = 0
 
-        gs.init(
-            backend=gs.gs_backend.gpu,
-            precision="32",
-        )
+            while True:
+                try:
+                    # Get message from queue (added by client handler)
+                    if not message_queue.empty():
+                        message = await message_queue.get()
+                    else:
+                        message = {}
 
-        self.scene = gs.Scene(
-            viewer_options=gs.options.ViewerOptions(
-                camera_pos=(
-                    3,
-                    0,
-                    2.5,
-                ),  # the position of the camera physically in meter
-                camera_lookat=(
-                    0.0,
-                    0.0,
-                    0.5,
-                ),  # the position that the camera will look at
-                camera_fov=30,
-                max_FPS=60,
-            ),
-            show_viewer=False,
-        )
-        self.end_effector = None
+                    # Process the message (server-side logic)
+                    logger.info(
+                        f"Processing message from client {client_id}: {message}"
+                    )
 
-        self.robot = None
-        self.cam = None
-        self.steps = 0
-        self.objs = []
-        self.begin = []
-        self.end = []
+                    # Example: Add some server-side processing
+                    if message.get("type") == "zoom":
+                        if message["direction"] == "in":
+                            if zoom > -0.8:
+                                zoom -= 0.1
+                        elif message["direction"] == "out":
+                            if zoom < 1:
+                                zoom += 0.1
 
-    # convert name into index number for ease of control
+                    elif message.get("type") == "stop":
+                        while not actions_queue.empty():
+                            actions_queue.get_nowait()
+                            actions_queue.task_done()
 
-    def init_build(self):
-        _ = self.scene.add_entity(gs.morphs.Plane())
-        _ = self.scene.add_entity(
-            gs.morphs.MJCF(
-                file="furniture/simpleTable.xml",
-                pos=(0.4, 0, 0),
-            ),
-        )
+                    if step < steps:
+                        step += 1
 
-        self.robot = self.scene.add_entity(
-            gs.morphs.MJCF(
-                file="xml/franka_emika_panda/panda.xml",
-                pos=(0, 0, 0.75),
-                euler=(0, 0, 0),
-            ),
-        )
+                        main_view, _, _, _ = self.env.cam.render()
+                        god_view, _, _, _ = self.env.cam_god.render()
 
-        self.cam = self.scene.add_camera(
-            res=(640, 480),
-            fov=30,
-            GUI=False,
-        )
+                        main_view = main_view[:, :, ::-1]
+                        god_view = god_view[:, :, ::-1]
 
-        self.generate_random_objects()
+                        processed_message = {
+                            "type": "streaming_view",
+                            "main_view": encode_numpy_array(main_view),
+                            "god_view": encode_numpy_array(god_view),
+                        }
 
-        self.scene.build()
+                        await send_personal_message(
+                            websocket, json.dumps(processed_message), client_id
+                        )
+                        await asyncio.sleep(0.001)
 
-        self.robot.set_dofs_kp(
-            kp=np.array(self.kp),
-            dofs_idx_local=self.arm_dofs_idx,
-        )
+                    else:
+                        step = 0
+                except WebSocketDisconnect:
+                    logger.error("Websocket disconnected")
+                    return
+                except Exception as e:
+                    logger.error(f"Error while rendering: {str(e)}")
+                    await send_personal_message(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": f"Error while rendering: {str(e)}",
+                            }
+                        ),
+                        client_id,
+                    )
+                    return
 
-        self.robot.set_dofs_kv(
-            kv=np.array(self.kv),
-            dofs_idx_local=self.arm_dofs_idx,
-        )
+        except asyncio.CancelledError:
+            logger.error(f"Server processor for client {client_id} cancelled")
+            return
+        except Exception as e:
+            logger.error(f"Server processor error for client {client_id}: {str(e)}")
+            return
 
-        self.arm_dofs_idx = [
-            self.robot.get_joint(name).dof_idx_local for name in self.arm_jnt_names
-        ]
+    async def client_handler(
+        self,
+        message_queue: asyncio.Queue,
+        actions_queue: asyncio.Queue,
+        client_id: str,
+        websocket: WebSocket,
+    ):
+        try:
+            while True:
+                # Wait for message from client
+                data = await websocket.receive_text()
 
-        self.robot.set_dofs_force_range(
-            lower=np.array(self.force_range[0]),
-            upper=np.array(self.force_range[1]),
-            dofs_idx_local=self.arm_dofs_idx,
-        )
+                try:
+                    message_data = json.loads(data)
+                except json.JSONDecodeError:
+                    message_data = {"type": "message", "content": data}
 
-        self.robot.set_dofs_position(
-            np.array(self.init_dofs_pos),
-            self.arm_dofs_idx,
-        )
-
-        self.cam.set_pose(
-            pos=(4.5, 0, 2.5),
-            lookat=(0, 0, 1.2),
-        )
-
-    def render_cam(self):
-        """Render the camera view with the specified id.
-
-        Args:
-            id (int, optional): Camera index to render from. Defaults to 0.
-
-        Returns:
-            numpy.ndarray: The rendered image from the camera.
-        """
-        out = self.cam.render()
-        return out[0][:, :, ::-1]
-
-    def step(self):
-        self.scene.step()
-
-        if self.steps < 200:
-            self.robot.control_dofs_position(self.begin[self.steps])
-
-        if self.steps > 300 and self.steps < 400:
-            self.grasp(False)
-
-        if self.steps > 400 and self.steps < 500:
-            self.grasp(True)
-
-        if self.steps > 500 and self.steps < 700:
-            self.robot.control_dofs_position(
-                [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                self.arm_dofs_idx,
-            )
-
-        # if self.steps >= 200 and self.steps < 400:
-        #     self.robot.control_dofs_position(self.end[self.steps - 200])
-
-        self.steps += 1
-        return self.steps
-
-    def generate_random_objects(self):
-        obj = self.scene.add_entity(
-            gs.morphs.Box(
-                size=(0.05, 0.05, 0.05),
-                pos=(0.6, 0, 0.8),
-            )
-        )
-
-        self.objs.append(obj)
-
-    def path_to(self, pos):
-        self.end_effector = self.robot.get_link("hand")
-
-        qpos = self.robot.inverse_kinematics(
-            link=self.end_effector,
-            pos=np.array(pos[0:3]),
-            quat=np.array([0, 1, 0, 0]),
-            init_qpos=self.init_dofs_pos,
-        )
-
-        path = self.robot.plan_path(
-            qpos_start=self.init_dofs_pos,
-            qpos_goal=qpos,
-            ignore_collision=True,
-            num_waypoints=200,  # 2s duration
-        )
-
-        return path
-
-    def grasp(self, close):
-        if close:
-            self.robot.control_dofs_position(
-                [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                self.arm_dofs_idx,
-            )
-        else:
-            self.robot.control_dofs_position(
-                [0, 0, 0, 0, 0, 0, 0, 1, 1],
-                self.arm_dofs_idx,
-            )
+        except WebSocketDisconnect:
+            logger.info(f"Client {client_id} disconnected")
+            raise
+        except asyncio.CancelledError:
+            logger.info(f"Client handler for client {client_id} cancelled")
+        except Exception as e:
+            logger.error(f"Client handler error for client {client_id}: {str(e)}")
+            raise

@@ -8,7 +8,7 @@
 ====================================================== -©vk©-->
 
     <compiler angle="radian" meshdir="" texturedir=""/>
-    <include file="../furniture_sim/simpleTable/simpleTable_asset.xml"/>
+    <include file="simpleTable/simpleTable_asset.xml"/>
     <visual>
         <headlight diffuse=".9 .9 .9"/>
     </visual>
@@ -16,7 +16,7 @@
     <worldbody>
 
         <body pos="0 0 0">
-            <include file="../furniture_sim/simpleTable/simpleWoodTable_body.xml" />
+            <include file="simpleTable/simpleWoodTable_body.xml" />
         </body>
     </worldbody>
 

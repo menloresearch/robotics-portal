@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
 from scenes.g1.g1_sim import G1Sim
+from scenes.desk.desk_sim import BeatTheDeskSim
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
@@ -70,7 +71,7 @@ async def websocket_endpoint(websocket: WebSocket):
             elif message_data.get("env") == "g1":
                 scene = G1Sim()
             elif message_data.get("env") == "arm":
-                scene = None
+                scene = BeatTheDeskSim()
 
             break
 

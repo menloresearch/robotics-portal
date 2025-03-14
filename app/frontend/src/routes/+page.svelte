@@ -192,6 +192,26 @@
       socket.close();
       socket = null;
     }
+
+    // Clear main canvas with dark background
+    if (ctx && canvas) {
+      ctx.fillStyle = "#1f2937";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Clear secondary canvas with dark background
+    if (secondaryCtx && secondaryCanvas) {
+      secondaryCtx.fillStyle = "#1f2937";
+      secondaryCtx.fillRect(
+        0,
+        0,
+        secondaryCanvas.width,
+        secondaryCanvas.height,
+      );
+    }
+
+    // Reset reasoning messages
+    reasoningMessages = "";
   }
 
   // Function to switch between cameras

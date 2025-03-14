@@ -215,7 +215,8 @@ class G1Env:
             link_id_local = link.idx_local
             self.termination_contact_indices.append(link_id_local)
         self.position = [0, 0, 0]
-        self.robot.control_dofs_position(np.array([0, 0, -0.3, 0.3, -0.2, 0, 0, 0, -0.3, 0.3, -0.2, 0]), self.motor_dofs)
+        self.robot.control_dofs_position(np.array(
+            [0, 0, -0.3, 0.3, -0.2, 0, 0, 0, -0.3, 0.3, -0.2, 0]), self.motor_dofs)
 
     def _resample_commands(self, envs_idx):
         self.commands[envs_idx, 0] = gs_rand_float(
@@ -229,7 +230,7 @@ class G1Env:
         self.robot.control_dofs_position(np.zeros(12), self.motor_dofs)
         self.scene.step()
 
-    def step(self, actions):
+    def step(self, actions, x=0, y=0, angle=0):
         self.actions = torch.clip(
             actions, -self.env_cfg["clip_actions"], self.env_cfg["clip_actions"])
         exec_actions = self.last_actions if self.simulate_action_latency else self.actions
@@ -251,7 +252,7 @@ class G1Env:
             transform_quat_by_quat(torch.ones_like(
                 self.base_quat) * self.inv_base_init_quat, self.base_quat)
         )
-        
+
         inv_base_quat = inv_quat(self.base_quat)
         self.base_lin_vel[:] = transform_by_quat(
             self.robot.get_vel(), inv_base_quat)
@@ -261,19 +262,19 @@ class G1Env:
             self.global_gravity, inv_base_quat)
         self.dof_pos[:] = self.robot.get_dofs_position(self.motor_dofs)
         self.dof_vel[:] = self.robot.get_dofs_velocity(self.motor_dofs)
-        
+
         base_pose_cpu = self.base_pos[0].cpu().numpy()
         base_euler_cpu = self.base_euler[0, 2].cpu().numpy()
         self.position[:2] = base_pose_cpu[:2]
         self.position[2] = float(base_euler_cpu)
-        
+
         self.cam.set_pose(
             pos=base_pose_cpu
             - np.array(
                 [
                     3 * math.cos(math.radians(base_euler_cpu)),
                     3 * math.sin(math.radians(base_euler_cpu)),
-                    -2,
+                    -1,
                 ]
             ),
             lookat=(
@@ -289,7 +290,7 @@ class G1Env:
                 [
                     0.3 * math.cos(math.radians(base_euler_cpu)),
                     0.3 * math.sin(math.radians(base_euler_cpu)),
-                    1.5,
+                    1,
                 ]
             ),
             lookat=(
@@ -306,7 +307,7 @@ class G1Env:
             .nonzero(as_tuple=False)
             .flatten()
         )
-        self._resample_commands(envs_idx)
+        # self._resample_commands(envs_idx)
 
         # check termination and reset
         self.pelvis_pos = self.links_pos[:, self.pelvis_id_local, :]
@@ -326,11 +327,11 @@ class G1Env:
         # if (self.domain_rand_cfg['randomize_friction']):
         #     self.randomize_friction()
 
-        if (self.domain_rand_cfg['randomize_mass']):
-            self.randomize_mass()
+        # if (self.domain_rand_cfg['randomize_mass']):
+        #     self.randomize_mass()
 
-        if (self.domain_rand_cfg['push_robots']):
-            self.push_robots()
+        # if (self.domain_rand_cfg['push_robots']):
+        #     self.push_robots()
 
         # Modified Physics
         self.contact_forces = self.robot.get_links_net_contact_force()
@@ -380,6 +381,9 @@ class G1Env:
         )
         self.obs_buf = torch.clip(
             self.obs_buf, -self.env_cfg["clip_observations"], self.env_cfg["clip_observations"])
+        self.obs_buf[:, 6] = x
+        self.obs_buf[:, 7] = y
+        self.obs_buf[:, 8] = angle
 
         self.last_actions[:] = self.actions[:]
         self.last_dof_vel[:] = self.dof_vel[:]

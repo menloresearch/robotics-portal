@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect
 import asyncio
 import json
 import torch
@@ -8,8 +8,14 @@ import pickle
 from scenes.scene_abstract import SceneAbstract
 from scenes.go2.go2_env import Go2Env
 from rsl_rl.runners import OnPolicyRunner
-from utils.utils import encode_numpy_array, send_personal_message, send_openai_request, parse_json_from_mixed_string
+from utils.utils import (
+    encode_numpy_array,
+    send_personal_message,
+    send_openai_request,
+    parse_json_from_mixed_string,
+)
 import logging
+
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
@@ -20,7 +26,9 @@ class Go2Sim(SceneAbstract):
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.load_policy()
 
-    def load_policy(self,):
+    def load_policy(
+        self,
+    ):
         # global policy_walk, policy_stand, policy_right, policy_left, env
         log_dir = "scenes/go2/checkpoints/go2-walking"
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
@@ -75,8 +83,12 @@ class Go2Sim(SceneAbstract):
         resume_path = os.path.join(log_dir, "model_500.pt")
         runner.load(resume_path)
         self.policy_stand = runner.get_inference_policy(device="cuda:0")
-        self.list_actions = [self.policy_right,
-                             self.policy_left, self.policy_stand, self.policy_walk]
+        self.list_actions = [
+            self.policy_right,
+            self.policy_left,
+            self.policy_stand,
+            self.policy_walk,
+        ]
         return
 
     def transform(self, action, amplitude):
@@ -94,8 +106,13 @@ class Go2Sim(SceneAbstract):
             obs, _, rews, dones, infos = env.step(action)
         return obs
 
-    async def server_processor(self, message_queue: asyncio.Queue, actions_queue: asyncio.Queue, client_id: str, websocket: WebSocket):
-
+    async def server_processor(
+        self,
+        message_queue: asyncio.Queue,
+        actions_queue: asyncio.Queue,
+        client_id: str,
+        websocket: WebSocket,
+    ):
         actions_map = {
             "move_forward": 3,
             "rotate_left": 1,
@@ -145,12 +162,10 @@ class Go2Sim(SceneAbstract):
 
                     if (not actions_queue.empty()) and stop == True:
                         action, amptitude = await actions_queue.get()
-                        logger.info("action: " + str(action) +
-                                    ", am:" + str(amptitude))
+                        logger.info("action: " + str(action) + ", am:" + str(amptitude))
                         action = actions_map[action]
                         steps = self.transform(action, amptitude)
-                        logger.info("action: " + str(action) +
-                                    ", steps:" + str(steps))
+                        logger.info("action: " + str(action) + ", steps:" + str(steps))
                         step = 0
                         stop = False
 
@@ -175,22 +190,19 @@ class Go2Sim(SceneAbstract):
                         with torch.no_grad():
                             if stop:
                                 actions = self.list_actions[2](obs)  # stand
-                                obs, _, rews, dones, infos = self.env.step(
-                                    actions)
+                                obs, _, rews, dones, infos = self.env.step(actions)
                             else:
                                 actions = self.list_actions[action](obs)
-                                obs, _, rews, dones, infos = self.env.step(
-                                    actions)
+                                obs, _, rews, dones, infos = self.env.step(actions)
                         processed_message = {
                             "type": "streaming_view",
                             "main_view": encode_numpy_array(main_view),
                             "god_view": encode_numpy_array(god_view),
                         }
 
-                        await send_personal_message(websocket,
-                                                    json.dumps(
-                                                        processed_message), client_id
-                                                    )
+                        await send_personal_message(
+                            websocket, json.dumps(processed_message), client_id
+                        )
                         # print("robot position:", env.position)
                         await asyncio.sleep(0.001)
 
@@ -202,10 +214,16 @@ class Go2Sim(SceneAbstract):
                     return
                 except Exception as e:
                     logger.error(f"Error while rendering: {str(e)}")
-                    await send_personal_message(websocket,
-                                                json.dumps(
-                                                    {"type": "error", "message": f"Error while rendering: {str(e)}"}), client_id
-                                                )
+                    await send_personal_message(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": f"Error while rendering: {str(e)}",
+                            }
+                        ),
+                        client_id,
+                    )
                     return
                 # Mark task as done
                 # message_queue.task_done()
@@ -213,11 +231,16 @@ class Go2Sim(SceneAbstract):
             logger.error(f"Server processor for client {client_id} cancelled")
             return
         except Exception as e:
-            logger.error(
-                f"Server processor error for client {client_id}: {str(e)}")
+            logger.error(f"Server processor error for client {client_id}: {str(e)}")
             return
 
-    async def client_handler(self, message_queue: asyncio.Queue, actions_queue: asyncio.Queue, client_id: str, websocket: WebSocket):
+    async def client_handler(
+        self,
+        message_queue: asyncio.Queue,
+        actions_queue: asyncio.Queue,
+        client_id: str,
+        websocket: WebSocket,
+    ):
         try:
             while True:
                 # Wait for message from client
@@ -236,52 +259,53 @@ class Go2Sim(SceneAbstract):
                     robot_position = str(self.env.position)
                     content += ". Robot is at the position " + robot_position
                     async for chunk in send_openai_request(prompt=content):
-                        await send_personal_message(websocket,
-                                                    json.dumps(
-                                                        {
-                                                            "type": "reasoning",
-                                                            "message": chunk["choices"][0]["delta"].get(
-                                                                "content", ""
-                                                            ),
-                                                        }
-                                                    ),
-                                                    client_id,
-                                                    )
+                        await send_personal_message(
+                            websocket,
+                            json.dumps(
+                                {
+                                    "type": "reasoning",
+                                    "message": chunk["choices"][0]["delta"].get(
+                                        "content", ""
+                                    ),
+                                }
+                            ),
+                            client_id,
+                        )
 
-                        final_answer += chunk["choices"][0]["delta"].get(
-                            "content", "")
+                        final_answer += chunk["choices"][0]["delta"].get("content", "")
                         actions = parse_json_from_mixed_string(final_answer)
                     print(final_answer)
                     if actions is None:
-                        await send_personal_message(websocket,
-                                                    json.dumps(
-                                                        {
-                                                            "type": "error",
-                                                            "message": "can not parse action from LLM",
-                                                        }
-                                                    ),
-                                                    client_id,
-                                                    )
+                        await send_personal_message(
+                            websocket,
+                            json.dumps(
+                                {
+                                    "type": "error",
+                                    "message": "can not parse action from LLM",
+                                }
+                            ),
+                            client_id,
+                        )
                     else:
                         actions = actions["actions"]
                         for action in actions:
                             await actions_queue.put(
                                 (
                                     action["type"],
-                                    action.get(
-                                        "angle", action.get("distance", 0)),
+                                    action.get("angle", action.get("distance", 0)),
                                 )
                             )
 
-                        await send_personal_message(websocket,
-                                                    json.dumps(
-                                                        {
-                                                            "type": "output",
-                                                            "message": actions,
-                                                        }
-                                                    ),
-                                                    client_id,
-                                                    )
+                        await send_personal_message(
+                            websocket,
+                            json.dumps(
+                                {
+                                    "type": "output",
+                                    "message": actions,
+                                }
+                            ),
+                            client_id,
+                        )
 
                 else:
                     await message_queue.put(message_data)
@@ -292,6 +316,5 @@ class Go2Sim(SceneAbstract):
         except asyncio.CancelledError:
             logger.info(f"Client handler for client {client_id} cancelled")
         except Exception as e:
-            logger.error(
-                f"Client handler error for client {client_id}: {str(e)}")
+            logger.error(f"Client handler error for client {client_id}: {str(e)}")
             raise

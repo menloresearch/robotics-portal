@@ -9,6 +9,8 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
 from scenes.g1.g1_sim import G1Sim
+from scenes.desk.desk_sim import BeatTheDeskSim
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -16,32 +18,26 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load the ML mode
-    
     load_dotenv()
     yield
-    # Clean up the ML models and release the resources
 
 
 app = FastAPI(lifespan=lifespan, title="Fully Self-Contained WebSocket Server")
 
+
 # Regular HTTP endpoint
-
-
 @app.get("/")
 async def get():
     return {"message": "WebSocket server is running. Connect to /ws to use WebSocket."}
 
 
 # WebSocket endpoint with no external dependencies
-
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    # Static variable to keep track of all active connections
-    # Using class attribute pattern to avoid global variables
-    # if not hasattr(websocket_endpoint, "active_connections"):
-    gs.init()
+    # BUG: reconnecting will create intialisation error
+    if not gs._initialized:
+        gs.init()
+
     active_connections = {}
 
     # Accept connection
@@ -57,39 +53,40 @@ async def websocket_endpoint(websocket: WebSocket):
     message_queue = asyncio.Queue()
     actions_queue = asyncio.Queue()
 
-    # Helper functions for WebSocket communication
-
     # Notify about new connection
     await send_personal_message(
         websocket,
-        json.dumps(
-            {"type": "connection_established", "client_id": client_id}
-        ),
+        json.dumps({"type": "connection_established", "client_id": client_id}),
         client_id,
     )
+
+    # Will only advance after receiving text for environment from websocket
     while True:
         data = await websocket.receive_text()
         message_data = json.loads(data)
+
         if message_data.get("type") == "env":
             if message_data.get("env") == "go2":
-                go2_sim = Go2Sim()
-            else:
-                go2_sim = G1Sim()
-            
+                scene = Go2Sim()
+            elif message_data.get("env") == "g1":
+                scene = G1Sim()
+            elif message_data.get("env") == "arm":
+                scene = BeatTheDeskSim()
+
             break
+
     await send_personal_message(
         websocket,
-        json.dumps(
-            {"type": "initialized", "client_id": client_id}
-        ),
+        json.dumps({"type": "initialized", "client_id": client_id}),
         client_id,
     )
+
     # Run both coroutines concurrently
     server_task = asyncio.create_task(
-        go2_sim.server_processor(message_queue, actions_queue, client_id, websocket)
+        scene.server_processor(message_queue, actions_queue, client_id, websocket)
     )
     client_task = asyncio.create_task(
-        go2_sim.client_handler(message_queue, actions_queue, client_id, websocket)
+        scene.client_handler(message_queue, actions_queue, client_id, websocket)
     )
 
     try:
@@ -112,14 +109,13 @@ async def websocket_endpoint(websocket: WebSocket):
         # Clean up - remove connection from active connections
         if client_id in active_connections:
             del active_connections[client_id]
-        gs.destroy()
 
         # Log remaining clients
         logger.error(
             f"Client {client_id} removed. Remaining clients: {len(active_connections)}"
         )
+
     gs.destroy()
-        # Notify about disconnection (optional)
 
 
 if __name__ == "__main__":

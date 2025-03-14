@@ -43,6 +43,8 @@ async def websocket_endpoint(websocket: WebSocket):
     if sim is None:
         sim = BeatTheDesk()
         sim.init_build()
+        sim.begin = sim.path_to([0.6, 0, 0.9, 0, 0, 0, 0])
+        # sim.end = sim.path_to([0.5, 0.3, 0.75, 0, 0, 0, 0])
 
     # Default settings
     target_fps = 30

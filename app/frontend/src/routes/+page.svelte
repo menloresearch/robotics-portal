@@ -8,9 +8,6 @@
   let connectionStatus = "Disconnected";
   let statusColor = "text-red-500";
   let frameCount = 0;
-  let isDragging = false;
-  let lastMouseX = 0;
-  let lastMouseY = 0;
   let fps = "0";
   let latency = "0";
   let frameSize = "0";
@@ -21,6 +18,12 @@
   let isConnected = false;
   let instruction = "";
   let reasoningMessages: string = "";
+  let selectedEnvironment = "go2";
+  let environments = [
+    { id: "go2", name: "Go2" },
+    // { id: "g1", name: "G1" },
+    { id: "arm", name: "Arm" },
+  ];
 
   // Performance tracking
   let lastFrameTime = 0;
@@ -84,7 +87,7 @@
 
   // Connect to WebSocket server
   function connect() {
-    // socket = new WebSocket("ws://192.168.0.20:8000/ws");
+    // socket = new WebSocket("ws:/localhost:8000/ws");
     socket = new WebSocket("ws://192.168.0.20:8000/ws");
 
     // Connection opened
@@ -93,6 +96,14 @@
       connectionStatus = "Connected";
       statusColor = "text-green-500";
       isConnected = true;
+
+      // Send environment selection message
+      socket.send(
+        JSON.stringify({
+          type: "env",
+          env: selectedEnvironment,
+        }),
+      );
     });
 
     // Listen for messages
@@ -239,6 +250,21 @@
 
           <div class="space-y-4">
             <div class="space-y-2">
+              <h3 class="text-sm font-medium text-gray-400">Environment</h3>
+              <div class="flex flex-col space-y-2">
+                <select
+                  bind:value={selectedEnvironment}
+                  disabled={isConnected}
+                  class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white"
+                >
+                  {#each environments as env}
+                    <option value={env.id}>{env.name}</option>
+                  {/each}
+                </select>
+              </div>
+            </div>
+
+            <div class="space-y-2">
               <h3 class="text-sm font-medium text-gray-400">Connection</h3>
               <div class="flex flex-col space-y-2">
                 <button
@@ -328,6 +354,13 @@
             <div class="flex justify-between">
               <span>Frame Size:</span>
               <span class="font-semibold">{frameSize} KB</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Environment:</span>
+              <span class="font-semibold"
+                >{environments.find((env) => env.id === selectedEnvironment)
+                  ?.name || selectedEnvironment}</span
+              >
             </div>
           </div>
         </div>

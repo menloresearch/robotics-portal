@@ -29,7 +29,7 @@ export function connect() {
   socket.set(webSocket);
 
   // Connection opened
-  webSocket.addEventListener("open", (event) => {
+  webSocket.addEventListener("open", () => {
     console.log("Connected to WebSocket server");
     connectionStatus.set("Connected");
     statusColor.set("text-green-500");
@@ -109,7 +109,7 @@ export function connect() {
   });
 
   // Connection closed
-  webSocket.addEventListener("close", (event) => {
+  webSocket.addEventListener("close", () => {
     console.log("Disconnected from WebSocket server");
     connectionStatus.set("Disconnected");
     statusColor.set("text-red-500");

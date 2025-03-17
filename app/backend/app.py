@@ -36,6 +36,7 @@ async def get():
 async def default_config():
     return json.load(open("assets/default_scene_configuration.json", "r"))
 
+
 # WebSocket endpoint with no external dependencies
 
 
@@ -72,13 +73,20 @@ async def websocket_endpoint(websocket: WebSocket):
         data = await websocket.receive_text()
         message_data = json.loads(data)
 
+        objects = [
+            {"red-cube": [0.51, 0.43, 0.8]},
+            {"black-cube": [0.44, 0.58, 0.8]},
+            {"purple-cube": [0.74, 0.59, 0.8]},
+            {"green-cube": [0.65, 0.82, 0.8]},
+        ]
+
         if message_data.get("type") == "env":
             if message_data.get("env") == "go2":
-                scene = Go2Sim(config=message_data.get("config",{}))
+                scene = Go2Sim(config=message_data.get("config", {}))
             elif message_data.get("env") == "g1":
-                scene = G1Sim(config=message_data.get("config",{}))
+                scene = G1Sim(config=message_data.get("config", {}))
             elif message_data.get("env") == "arm":
-                scene = BeatTheDeskSim(config=message_data.get("config", {}))
+                scene = BeatTheDeskSim(objects)
 
             break
 
@@ -91,12 +99,12 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Run both coroutines concurrently
     server_task = asyncio.create_task(
-        scene.server_processor(
-            message_queue, actions_queue, client_id, websocket)
+        scene.server_processor(message_queue, actions_queue, client_id, websocket)
     )
     client_task = asyncio.create_task(
-        scene.client_handler(message_queue, actions_queue,
-                             client_id, websocket, last_activity)
+        scene.client_handler(
+            message_queue, actions_queue, client_id, websocket, last_activity
+        )
     )
 
     timeout_task = asyncio.create_task(check_timeout(websocket, last_activity))
@@ -104,7 +112,8 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         # Wait for either task to finish (usually due to disconnect)
         done, pending = await asyncio.wait(
-            [server_task, client_task, timeout_task], return_when=asyncio.FIRST_COMPLETED
+            [server_task, client_task, timeout_task],
+            return_when=asyncio.FIRST_COMPLETED,
         )
 
         # Cancel the remaining task

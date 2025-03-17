@@ -8,14 +8,15 @@ logger = logging.getLogger(__name__)
 
 
 class BeatTheDeskEnv:
-    def __init__(self) -> None:
+    def __init__(self, objects) -> None:
         self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
         self.kv = [450, 450, 350, 350, 200, 200, 200, 10, 10]
         self.force_range = [
             [-87, -87, -87, -87, -12, -12, -12, -100, -100],
             [87, 87, 87, 87, 12, 12, 12, 100, 100],
         ]
-        self.init_dofs_pos = [0, 0, 0, 0, 0, 0, 0, 0.04, 0.04]
+        self.init_arm_dofs = [0, 0, 0, 0, 0, 0, 0]
+        self.init_finger_dofs = [0.1, 0.1]
 
         self.arm_jnt_names = [
             "joint1",
@@ -25,25 +26,17 @@ class BeatTheDeskEnv:
             "joint5",
             "joint6",
             "joint7",
+        ]
+
+        self.finger_jnt_names = [
             "finger_joint1",
             "finger_joint2",
         ]
 
-        self.arm_dofs_idx = None
-
-        self.end_effector = None
-
-        self.robot = None
-        self.cam = None
-        self.steps = 0
-        self.objs = []
-        self.begin = []
-        self.end = []
-
         self.scene = gs.Scene(
             viewer_options=gs.options.ViewerOptions(
-                camera_pos=(3, 0, 2.5),
-                camera_lookat=(0.0, 0.0, 0.5),
+                camera_pos=(3, 0.6, 2.5),
+                camera_lookat=(0.0, 0.6, 0.5),
                 camera_fov=30,
                 max_FPS=60,
             ),
@@ -55,22 +48,22 @@ class BeatTheDeskEnv:
         _ = self.scene.add_entity(
             gs.morphs.MJCF(
                 file="scenes/desk/furniture/simpleTable.xml",
-                pos=(0.4, 0, 0),
+                pos=(0.5, 0.5, 0),
             ),
         )
 
         self.robot = self.scene.add_entity(
             gs.morphs.MJCF(
                 file="xml/franka_emika_panda/panda.xml",
-                pos=(0, 0, 0.75),
+                pos=(0, 0.5, 0.75),
                 euler=(0, 0, 0),
             ),
         )
 
         self.cam = self.scene.add_camera(
             res=(640, 480),
-            pos=(4.5, 0, 2.5),
-            lookat=(0, 0, 1.2),
+            pos=(4, 0.5, 2.5),
+            lookat=(0, 0.25, 1.2),
             fov=30,
             GUI=False,
         )
@@ -83,88 +76,97 @@ class BeatTheDeskEnv:
             GUI=False,
         )
 
-        self.scene.add_entity(
-            gs.morphs.Box(
-                size=(0.05, 0.05, 0.05),
-                pos=(0.6, 0, 0.8),
-            )
-        )
+        self.spawn_objs(objects)
 
         self.scene.build()
-
-        self.robot.set_dofs_kp(
-            kp=np.array(self.kp),
-            dofs_idx_local=self.arm_dofs_idx,
-        )
-
-        self.robot.set_dofs_kv(
-            kv=np.array(self.kv),
-            dofs_idx_local=self.arm_dofs_idx,
-        )
 
         self.arm_dofs_idx = [
             self.robot.get_joint(name).dof_idx_local for name in self.arm_jnt_names
         ]
 
+        self.finger_dofs_idx = [
+            self.robot.get_joint(name).dof_idx_local for name in self.finger_jnt_names
+        ]
+
+        self.robot.set_dofs_kp(
+            kp=np.array(self.kp),
+            dofs_idx_local=self.arm_dofs_idx + self.finger_dofs_idx,
+        )
+
+        self.robot.set_dofs_kv(
+            kv=np.array(self.kv),
+            dofs_idx_local=self.arm_dofs_idx + self.finger_dofs_idx,
+        )
+
+        self.end_effector = self.robot.get_link("hand")
+
         self.robot.set_dofs_force_range(
             lower=np.array(self.force_range[0]),
             upper=np.array(self.force_range[1]),
-            dofs_idx_local=self.arm_dofs_idx,
+            dofs_idx_local=self.arm_dofs_idx + self.finger_dofs_idx,
         )
 
         self.robot.set_dofs_position(
-            np.array(self.init_dofs_pos),
+            np.array(self.init_arm_dofs),
             self.arm_dofs_idx,
+        )
+
+        self.robot.set_dofs_position(
+            np.array(self.init_finger_dofs),
+            self.finger_dofs_idx,
         )
 
     def step(self):
         self.scene.step()
 
-        if self.steps < 200:
-            self.robot.control_dofs_position(self.begin[self.steps])
-
-        if self.steps > 300 and self.steps < 400:
-            self.grasp(False)
-
-        if self.steps > 400 and self.steps < 500:
-            self.grasp(True)
-
-        if self.steps > 500 and self.steps < 700:
-            self.robot.control_dofs_position(
-                [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                self.arm_dofs_idx,
-            )
-
-        self.steps += 1
-        return self.steps
-
-    def path_to(self, pos):
+    def ik(self, init_qpos, pos):
         self.end_effector = self.robot.get_link("hand")
 
         qpos = self.robot.inverse_kinematics(
             link=self.end_effector,
-            pos=np.array(pos[0:3]),
+            pos=np.array(pos),
             quat=np.array([0, 1, 0, 0]),
-            init_qpos=self.init_dofs_pos,
+            init_qpos=init_qpos,
         )
 
+        return qpos
+
+    def path_to(self, qpos):
         path = self.robot.plan_path(
-            qpos_start=self.init_dofs_pos,
+            # qpos_start=start_pos,
             qpos_goal=qpos,
-            ignore_collision=True,
-            num_waypoints=200,  # 2s duration
+            num_waypoints=300,  # 2s duration
+            timeout=20,
+            planner="BITstar",
         )
 
         return path
 
     def grasp(self, close):
         if close:
-            self.robot.control_dofs_position(
-                [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                self.arm_dofs_idx,
+            self.robot.control_dofs_force(
+                [-1.5, -1.5],
+                self.finger_dofs_idx,
             )
         else:
-            self.robot.control_dofs_position(
-                [0, 0, 0, 0, 0, 0, 0, 0.04, 0.04],
-                self.arm_dofs_idx,
+            self.robot.control_dofs_force(
+                [0.2, 0.2],
+                self.finger_dofs_idx,
+            )
+
+    def spawn_objs(self, arr):
+        size = (0.05, 0.05, 0.05)
+        for item in arr:
+            pos = list(item.values())[0]
+            print("cube pos: ", pos)
+            self.scene.add_entity(
+                gs.morphs.Box(
+                    size=size,
+                    pos=pos,
+                ),
+                surface=gs.surfaces.Plastic(
+                    color=(1.0, 0.0, 0.0, 1.0),
+                    default_roughness=10.0,
+                ),
+                # vis_mode="visual",
             )

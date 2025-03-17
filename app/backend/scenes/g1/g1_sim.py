@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class G1Sim(SceneAbstract):
-    def __init__(self, config = {}):
+    def __init__(self, config={}):
         super().__init__()
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.load_policy(config)
-        
+
     def load_policy(self, config):
         log_dir = "scenes/g1/checkpoints/g1-walking"
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(

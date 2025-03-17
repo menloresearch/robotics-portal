@@ -1,5 +1,41 @@
 {
     "scenes": {
+        "go2": {
+            "robot": {
+                "base_init_pos": [
+                    1,
+                    1,
+                    0.8
+                ],
+                "base_init_quat": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "scene": {
+                "entities": [
+                    {
+                        "type": "Mesh",
+                        "name": "dragon",
+                        "file": "meshes/dragon/dragon.obj",
+                        "pos": [
+                            5,
+                            5,
+                            0
+                        ],
+                        "fixed": true,
+                        "scale": 0.02,
+                        "euler": [
+                            90,
+                            0,
+                            45
+                        ]
+                    }
+                ]
+            }
+        },
         "g1": {
             "robot": {
                 "base_init_pos": [

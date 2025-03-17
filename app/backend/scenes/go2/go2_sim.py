@@ -21,13 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 class Go2Sim(SceneAbstract):
-    def __init__(self):
+    def __init__(self, config={}):
         super().__init__()
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.load_policy()
+        self.load_policy(config)
 
     def load_policy(
-        self,
+        self, config
     ):
         # global policy_walk, policy_stand, policy_right, policy_left, env
         log_dir = "scenes/go2/checkpoints/go2-walking"
@@ -43,6 +43,7 @@ class Go2Sim(SceneAbstract):
             reward_cfg=reward_cfg,
             command_cfg=command_cfg,
             show_viewer=False,
+            scene_config=config
         )
 
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")

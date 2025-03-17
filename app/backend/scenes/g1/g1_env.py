@@ -11,7 +11,7 @@ def gs_rand_float(lower, upper, shape, device):
 
 
 class G1Env:
-    def __init__(self, num_envs, env_cfg, obs_cfg, reward_cfg, command_cfg, domain_rand_cfg, show_viewer=False, device="cuda"):
+    def __init__(self, num_envs, env_cfg, obs_cfg, reward_cfg, command_cfg, domain_rand_cfg, show_viewer=False, device="cuda", scene_config={}):
         self.device = torch.device(device)
 
         self.num_envs = num_envs
@@ -60,10 +60,13 @@ class G1Env:
             file="urdf/plane/plane.urdf", fixed=True))
 
         # add robot
+
+        robot_config = scene_config.get("robot", {})
+
         self.base_init_pos = torch.tensor(
-            self.env_cfg["base_init_pos"], device=self.device)
+            robot_config.get("base_init_pos", self.env_cfg["base_init_pos"]), device=self.device)
         self.base_init_quat = torch.tensor(
-            self.env_cfg["base_init_quat"], device=self.device)
+            robot_config.get("base_init_quat",self.env_cfg["base_init_quat"]), device=self.device)
         self.inv_base_init_quat = inv_quat(self.base_init_quat)
         self.robot = self.scene.add_entity(
             gs.morphs.URDF(
@@ -94,24 +97,7 @@ class G1Env:
             GUI=False,
         )
 
-        dragon = self.scene.add_entity(
-            gs.morphs.Mesh(
-                file="meshes/dragon/dragon.obj",
-                pos=[5, 5, 0],
-                fixed=True,
-                scale=0.02,
-                euler=[90, 0, 45],
-            ),
-        )
-        boat = self.scene.add_entity(
-            gs.morphs.Mesh(
-                file="meshes/boat/boat.obj",
-                pos=[10, 0, 0],
-                fixed=True,
-                scale=1,
-                euler=[90, 0, 0],
-            ),
-        )
+        self.build_scene_from_config(scene_config)
 
         # build
         self.scene.build(n_envs=num_envs)
@@ -214,7 +200,7 @@ class G1Env:
             link = self.robot.get_link(name)
             link_id_local = link.idx_local
             self.termination_contact_indices.append(link_id_local)
-        self.position = [0, 0, 0]
+        self.position = self.base_init_pos.cpu().numpy()
         self.robot.control_dofs_position(np.array(
             [0, 0, -0.3, 0.3, -0.2, 0, 0, 0, -0.3, 0.3, -0.2, 0]), self.motor_dofs)
 
@@ -585,3 +571,47 @@ class G1Env:
         # Function borrowed from https://github.com/unitreerobotics/unitree_rl_gym,
         # which is originally under BSD-3 License
         return torch.sum(torch.square(self.dof_vel), dim=1)
+
+    def build_scene_from_config(self, config_dict):
+        """
+        Build a scene based on configuration dictionary
+
+        Args:
+            config_dict (dict): Dictionary containing scene configuration
+        """
+        # Extract scene configuration
+        scene_config = config_dict.get("scene", {})
+
+        # Add entities to the scene
+        entities = scene_config.get("entities", [])
+        for entity in entities:
+            entity_type = entity.get("type", "")
+
+            if entity_type == "URDF":
+                # Add other URDF entities
+                self.scene.add_entity(
+                    gs.morphs.URDF(
+                        file=entity.get("file", ""),
+                        pos=entity.get("pos", [0, 0, 0]),
+                        quat=entity.get("quat", [1, 0, 0, 0]),
+                        fixed=entity.get("fixed", False)
+                    )
+                )
+
+            elif entity_type == "Mesh":
+                # Add mesh entities
+                mesh_entity = self.scene.add_entity(
+                    gs.morphs.Mesh(
+                        file=entity.get("file", ""),
+                        pos=entity.get("pos", [0, 0, 0]),
+                        fixed=entity.get("fixed", True),
+                        scale=entity.get("scale", 1.0),
+                        euler=entity.get("euler", [0, 0, 0])
+                    )
+                )
+
+                # Store named entities if needed
+                if "name" in entity:
+                    setattr(self, entity["name"], mesh_entity)
+
+        # Build the scene with the specified number of environments

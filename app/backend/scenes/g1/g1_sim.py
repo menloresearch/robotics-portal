@@ -6,6 +6,7 @@ import json
 import torch
 import pickle
 from scenes.scene_abstract import SceneAbstract
+from datetime import datetime
 from scenes.g1.g1_env import G1Env
 from rsl_rl.runners import OnPolicyRunner
 from utils.utils import encode_numpy_array, send_personal_message, send_openai_request, parse_json_from_mixed_string
@@ -230,7 +231,7 @@ class G1Sim(SceneAbstract):
                 f"Server processor error for client {client_id}: {str(e)}")
             return
 
-    async def client_handler(self, message_queue: asyncio.Queue, actions_queue: asyncio.Queue, client_id: str, websocket: WebSocket):
+    async def client_handler(self, message_queue: asyncio.Queue, actions_queue: asyncio.Queue, client_id: str, websocket: WebSocket, last_activity: datetime):
         try:
             while True:
                 # Wait for message from client
@@ -298,7 +299,7 @@ class G1Sim(SceneAbstract):
 
                 else:
                     await message_queue.put(message_data)
-
+                last_activity = datetime.now()
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected")
             raise

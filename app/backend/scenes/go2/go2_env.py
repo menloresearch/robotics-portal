@@ -9,6 +9,7 @@ from genesis.utils.geom import (
 )
 import numpy as np
 
+
 def gs_rand_float(lower, upper, shape, device):
     return (upper - lower) * torch.rand(size=shape, device=device) + lower
 
@@ -23,6 +24,7 @@ class Go2Env:
         command_cfg,
         show_viewer=False,
         device="cuda",
+        scene_config={}
     ):
         self.device = torch.device(device)
 
@@ -34,7 +36,8 @@ class Go2Env:
 
         self.simulate_action_latency = True  # there is a 1 step latency on real robot
         self.dt = 0.02  # control frequency on real robot is 50hz
-        self.max_episode_length = math.ceil(env_cfg["episode_length_s"] / self.dt)
+        self.max_episode_length = math.ceil(
+            env_cfg["episode_length_s"] / self.dt)
 
         self.env_cfg = env_cfg
         self.obs_cfg = obs_cfg
@@ -65,15 +68,16 @@ class Go2Env:
         )
 
         # add plain
-        self.scene.add_entity(gs.morphs.URDF(file="urdf/plane/plane.urdf", fixed=True))
+        self.scene.add_entity(gs.morphs.URDF(
+            file="urdf/plane/plane.urdf", fixed=True))
 
         # add robot
+        robot_config = scene_config.get("robot", {})
         self.base_init_pos = torch.tensor(
-            self.env_cfg["base_init_pos"], device=self.device
-        )
+            robot_config.get("base_init_pos", self.env_cfg["base_init_pos"]), device=self.device)
         self.base_init_quat = torch.tensor(
-            self.env_cfg["base_init_quat"], device=self.device
-        )
+            robot_config.get("base_init_quat", self.env_cfg["base_init_quat"]), device=self.device)
+
         self.inv_base_init_quat = inv_quat(self.base_init_quat)
         self.robot = self.scene.add_entity(
             gs.morphs.URDF(
@@ -103,35 +107,8 @@ class Go2Env:
             fov=40,
             GUI=False,
         )
-        # self.cam.follow_entity(self.robot,fix_orientation=True)
 
-        dragon = self.scene.add_entity(
-            gs.morphs.Mesh(
-                file="meshes/dragon/dragon.obj",
-                pos=[5, 5, 0],
-                fixed=True,
-                scale=0.02,
-                euler=[90, 0, 45],
-            ),
-        )
-        boat = self.scene.add_entity(
-            gs.morphs.Mesh(
-                file="meshes/boat/boat.obj",
-                pos=[10, 0, 0],
-                fixed=True,
-                scale=1,
-                euler=[90, 0, 0],
-            ),
-        )
-
-        # self.robot2 = self.scene.add_entity(
-        #     gs.morphs.URDF(
-        #         file="urdf/go2/urdf/go2.urdf",
-        #         pos=(1,1,0),
-        #         quat=self.base_init_quat.cpu().numpy()
-        #     ),
-        # )
-        # self.scene.viewer.follow_entity(self.robot,fixed_axis=(-1,None,1))
+        self.build_scene_from_config(scene_config)
 
         # build
         self.scene.build(n_envs=num_envs)
@@ -143,8 +120,10 @@ class Go2Env:
         ]
 
         # PD control parameters
-        self.robot.set_dofs_kp([self.env_cfg["kp"]] * self.num_actions, self.motor_dofs)
-        self.robot.set_dofs_kv([self.env_cfg["kd"]] * self.num_actions, self.motor_dofs)
+        self.robot.set_dofs_kp([self.env_cfg["kp"]] *
+                               self.num_actions, self.motor_dofs)
+        self.robot.set_dofs_kv([self.env_cfg["kd"]] *
+                               self.num_actions, self.motor_dofs)
 
         # prepare reward functions and multiply reward scales by dt
         self.reward_functions, self.episode_sums = dict(), dict()
@@ -231,7 +210,8 @@ class Go2Env:
 
     def step(self, actions):
         self.actions = torch.clip(
-            actions, -self.env_cfg["clip_actions"], self.env_cfg["clip_actions"]
+            actions, -
+            self.env_cfg["clip_actions"], self.env_cfg["clip_actions"]
         )
         exec_actions = (
             self.last_actions if self.simulate_action_latency else self.actions
@@ -253,9 +233,12 @@ class Go2Env:
             )
         )
         inv_base_quat = inv_quat(self.base_quat)
-        self.base_lin_vel[:] = transform_by_quat(self.robot.get_vel(), inv_base_quat)
-        self.base_ang_vel[:] = transform_by_quat(self.robot.get_ang(), inv_base_quat)
-        self.projected_gravity = transform_by_quat(self.global_gravity, inv_base_quat)
+        self.base_lin_vel[:] = transform_by_quat(
+            self.robot.get_vel(), inv_base_quat)
+        self.base_ang_vel[:] = transform_by_quat(
+            self.robot.get_ang(), inv_base_quat)
+        self.projected_gravity = transform_by_quat(
+            self.global_gravity, inv_base_quat)
         self.dof_pos[:] = self.robot.get_dofs_position(self.motor_dofs)
         self.dof_vel[:] = self.robot.get_dofs_velocity(self.motor_dofs)
         base_pose_cpu = self.base_pos[0].cpu().numpy()
@@ -432,7 +415,8 @@ class Go2Env:
 
     def _reward_tracking_ang_vel(self):
         # Tracking of angular velocity commands (yaw)
-        ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
+        ang_vel_error = torch.square(
+            self.commands[:, 2] - self.base_ang_vel[:, 2])
         return torch.exp(-ang_vel_error / self.reward_cfg["tracking_sigma"])
 
     def _reward_lin_vel_z(self):
@@ -450,3 +434,47 @@ class Go2Env:
     def _reward_base_height(self):
         # Penalize base height away from target
         return torch.square(self.base_pos[:, 2] - self.reward_cfg["base_height_target"])
+
+    def build_scene_from_config(self, config_dict):
+        """
+        Build a scene based on configuration dictionary
+
+        Args:
+            config_dict (dict): Dictionary containing scene configuration
+        """
+        # Extract scene configuration
+        scene_config = config_dict.get("scene", {})
+
+        # Add entities to the scene
+        entities = scene_config.get("entities", [])
+        for entity in entities:
+            entity_type = entity.get("type", "")
+
+            if entity_type == "URDF":
+                # Add other URDF entities
+                self.scene.add_entity(
+                    gs.morphs.URDF(
+                        file=entity.get("file", ""),
+                        pos=entity.get("pos", [0, 0, 0]),
+                        quat=entity.get("quat", [1, 0, 0, 0]),
+                        fixed=entity.get("fixed", False)
+                    )
+                )
+
+            elif entity_type == "Mesh":
+                # Add mesh entities
+                mesh_entity = self.scene.add_entity(
+                    gs.morphs.Mesh(
+                        file=entity.get("file", ""),
+                        pos=entity.get("pos", [0, 0, 0]),
+                        fixed=entity.get("fixed", True),
+                        scale=entity.get("scale", 1.0),
+                        euler=entity.get("euler", [0, 0, 0])
+                    )
+                )
+
+                # Store named entities if needed
+                if "name" in entity:
+                    setattr(self, entity["name"], mesh_entity)
+
+        # Build the scene with the specified number of environments

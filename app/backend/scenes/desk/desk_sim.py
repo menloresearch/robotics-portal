@@ -1,14 +1,16 @@
 import asyncio
+import aiohttp
 import json
 import logging
 from datetime import datetime
+import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
-from scenes.scene_abstract import SceneAbstract
+
 from utils.utils import (
     encode_numpy_array,
     send_personal_message,
 )
-
+from scenes.scene_abstract import SceneAbstract
 from scenes.desk.desk_env import BeatTheDeskEnv
 
 logging.basicConfig(level=logging.ERROR)
@@ -16,9 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class BeatTheDeskSim(SceneAbstract):
-    def __init__(self) -> None:
+    def __init__(self, objects) -> None:
         super().__init__()
-        self.env = BeatTheDeskEnv()
+        self.env = BeatTheDeskEnv(objects)
+        self.path = []
 
     async def server_processor(
         self,
@@ -27,11 +30,16 @@ class BeatTheDeskSim(SceneAbstract):
         client_id: str,
         websocket: WebSocket,
     ):
-        zoom = 0
-
         try:
-            steps = 100
+            zoom = 0
+            steps = 300
             step = 0
+            stop = True
+
+            cam_pos = self.env.cam_god.pos
+            arm_pos = self.env.init_arm_dofs
+            finger_pos = self.env.init_finger_dofs
+            finger_grasp = False
 
             while True:
                 try:
@@ -46,7 +54,6 @@ class BeatTheDeskSim(SceneAbstract):
                         f"Processing message from client {client_id}: {message}"
                     )
 
-                    # Example: Add some server-side processing
                     if message.get("type") == "zoom":
                         if message["direction"] == "in":
                             if zoom > -0.8:
@@ -60,28 +67,60 @@ class BeatTheDeskSim(SceneAbstract):
                             actions_queue.get_nowait()
                             actions_queue.task_done()
 
-                    if step < steps:
-                        step += 1
-
-                        main_view, _, _, _ = self.env.cam.render()
-                        god_view, _, _, _ = self.env.cam_god.render()
-
-                        main_view = main_view[:, :, ::-1]
-                        god_view = god_view[:, :, ::-1]
-
-                        processed_message = {
-                            "type": "streaming_view",
-                            "main_view": encode_numpy_array(main_view),
-                            "god_view": encode_numpy_array(god_view),
-                        }
-
-                        await send_personal_message(
-                            websocket, json.dumps(processed_message), client_id
-                        )
-                        await asyncio.sleep(0.001)
-
-                    else:
+                    if (not actions_queue.empty()) and stop:
+                        action = np.array(await actions_queue.get())
+                        print("action: ", action)
+                        target = action[0:3] / 100
+                        target[0] += 0.005
+                        target[2] += 0.74
+                        print("target: ", target)
+                        qpos = self.env.ik([*arm_pos, *finger_pos], target)
+                        self.path.append((qpos, action[6]))
                         step = 0
+                        stop = False
+
+                    if step > steps and len(self.path) > 0:
+                        step = 0
+                        stop = True
+                        path = self.path.pop(0)
+                        arm_pos = path[0][:-2]
+                        finger_grasp = False if path[1] == 1 else True
+
+                    self.env.robot.control_dofs_position(
+                        arm_pos,
+                        self.env.arm_dofs_idx,
+                    )
+
+                    if finger_grasp:
+                        self.env.grasp(True)
+                    else:
+                        self.env.grasp(False)
+
+                    self.env.step()
+
+                    main_view, _, _, _ = self.env.cam.render()
+                    lookat = np.array(self.env.cam_god.lookat)
+                    self.env.cam_god.set_pose(
+                        pos=cam_pos + zoom * (cam_pos - lookat),
+                    )
+                    god_view, _, _, _ = self.env.cam_god.render()
+
+                    main_view = main_view[:, :, ::-1]
+                    god_view = god_view[:, :, ::-1]
+
+                    processed_message = {
+                        "type": "streaming_view",
+                        "main_view": encode_numpy_array(main_view),
+                        "god_view": encode_numpy_array(god_view),
+                    }
+
+                    await send_personal_message(
+                        websocket, json.dumps(processed_message), client_id
+                    )
+
+                    step += 1
+                    await asyncio.sleep(0.001)
+
                 except WebSocketDisconnect:
                     logger.error("Websocket disconnected")
                     return
@@ -112,18 +151,65 @@ class BeatTheDeskSim(SceneAbstract):
         actions_queue: asyncio.Queue,
         client_id: str,
         websocket: WebSocket,
-        last_activity: datetime
+        last_activity: datetime,
     ):
         try:
             while True:
                 # Wait for message from client
                 data = await websocket.receive_text()
 
+                logger.info(data)
+
                 try:
                     message_data = json.loads(data)
                 except json.JSONDecodeError:
                     message_data = {"type": "message", "content": data}
                 last_activity = datetime.now()
+
+                if message_data.get("type") == "command":
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            robot_task_data = {
+                                "instruction": message_data["content"],
+                                "objects": [
+                                    {"red-cube": [51, 43, 17]},
+                                    {"black-cube": [44, 58, 17]},
+                                    {"purple-cube": [74, 59, 17]},
+                                    {"green-cube": [65, 82, 17]},
+                                ],
+                            }
+
+                            async with session.post(
+                                "http://10.200.20.109:3348/robot/task",
+                                headers={"Content-Type": "application/json"},
+                                json=robot_task_data,
+                            ) as response:
+                                if response.status == 200:
+                                    response_data = await response.json()
+                                    logger.info(f"Robot task response: {response_data}")
+                                    for action in response_data["actions"]:
+                                        await actions_queue.put(action)
+
+                                    await send_personal_message(
+                                        websocket,
+                                        json.dumps(
+                                            {
+                                                "type": "reasoning",
+                                                "message": response_data["raw_output"],
+                                            }
+                                        ),
+                                        client_id,
+                                    )
+                                else:
+                                    logger.error(
+                                        f"Robot task request failed with status {response.status}"
+                                    )
+                    except Exception as e:
+                        logger.error(f"Error making robot task request: {str(e)}")
+
+                else:
+                    await message_queue.put(message_data)
+
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected")
             raise

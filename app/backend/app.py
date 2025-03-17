@@ -31,7 +31,13 @@ async def get():
     return {"message": "WebSocket server is running. Connect to /ws to use WebSocket."}
 
 
+@app.get("/defaul-scene-config")
+async def default_config():
+    return json.load(open("assets/default_scene_configuration.json", "r"))
+
 # WebSocket endpoint with no external dependencies
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     # BUG: reconnecting will create intialisation error
@@ -69,9 +75,9 @@ async def websocket_endpoint(websocket: WebSocket):
             if message_data.get("env") == "go2":
                 scene = Go2Sim()
             elif message_data.get("env") == "g1":
-                scene = G1Sim()
+                scene = G1Sim(config=message_data.get("config",{}))
             elif message_data.get("env") == "arm":
-                scene = BeatTheDeskSim()
+                scene = BeatTheDeskSim(config=message_data.get("config", {}))
 
             break
 
@@ -83,10 +89,12 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Run both coroutines concurrently
     server_task = asyncio.create_task(
-        scene.server_processor(message_queue, actions_queue, client_id, websocket)
+        scene.server_processor(
+            message_queue, actions_queue, client_id, websocket)
     )
     client_task = asyncio.create_task(
-        scene.client_handler(message_queue, actions_queue, client_id, websocket)
+        scene.client_handler(message_queue, actions_queue,
+                             client_id, websocket)
     )
 
     try:

@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class G1Sim(SceneAbstract):
-    def __init__(self):
+    def __init__(self, config = {}):
         super().__init__()
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
-        self.load_policy()
-
-    def load_policy(self):
+        self.load_policy(config)
+        
+    def load_policy(self, config):
         log_dir = "scenes/g1/checkpoints/g1-walking"
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
             open("scenes/g1/checkpoints/g1-walking/cfgs.pkl", "rb")
@@ -35,6 +35,7 @@ class G1Sim(SceneAbstract):
             command_cfg=command_cfg,
             domain_rand_cfg=domain_rand_cfg,
             show_viewer=False,
+            scene_config=config
         )
 
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")

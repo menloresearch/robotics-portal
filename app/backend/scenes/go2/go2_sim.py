@@ -8,6 +8,7 @@ import pickle
 from scenes.scene_abstract import SceneAbstract
 from scenes.go2.go2_env import Go2Env
 from rsl_rl.runners import OnPolicyRunner
+from datetime import datetime
 from utils.utils import (
     encode_numpy_array,
     send_personal_message,
@@ -241,6 +242,7 @@ class Go2Sim(SceneAbstract):
         actions_queue: asyncio.Queue,
         client_id: str,
         websocket: WebSocket,
+        last_activity: datetime
     ):
         try:
             while True:
@@ -310,6 +312,7 @@ class Go2Sim(SceneAbstract):
 
                 else:
                     await message_queue.put(message_data)
+                last_activity = datetime.now()
 
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected")

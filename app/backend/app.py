@@ -2,9 +2,10 @@ from fastapi import FastAPI, WebSocket
 import json
 import uvicorn
 import asyncio
+from datetime import datetime
 import logging
 import genesis as gs
-from utils.utils import send_personal_message
+from utils.utils import send_personal_message, check_timeout
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
@@ -86,6 +87,7 @@ async def websocket_endpoint(websocket: WebSocket):
         json.dumps({"type": "initialized", "client_id": client_id}),
         client_id,
     )
+    last_activity = datetime.now()
 
     # Run both coroutines concurrently
     server_task = asyncio.create_task(
@@ -94,13 +96,15 @@ async def websocket_endpoint(websocket: WebSocket):
     )
     client_task = asyncio.create_task(
         scene.client_handler(message_queue, actions_queue,
-                             client_id, websocket)
+                             client_id, websocket, last_activity)
     )
+
+    timeout_task = asyncio.create_task(check_timeout(websocket, last_activity))
 
     try:
         # Wait for either task to finish (usually due to disconnect)
         done, pending = await asyncio.wait(
-            [server_task, client_task], return_when=asyncio.FIRST_COMPLETED
+            [server_task, client_task, timeout_task], return_when=asyncio.FIRST_COMPLETED
         )
 
         # Cancel the remaining task

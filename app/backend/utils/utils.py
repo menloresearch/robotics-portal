@@ -2,9 +2,12 @@ import numpy as np
 import base64
 import json
 import cv2
+import asyncio
 
 import re
 import aiohttp
+from datetime import datetime
+from fastapi import WebSocket
 from config import Config
 
 SYSTEM_PROMPT = """
@@ -241,3 +244,17 @@ def encode_numpy_array(arr):
 
 async def send_personal_message(websocket, message: str, target_id: int):
     await websocket.send_text(message)
+
+
+async def check_timeout(websocket: WebSocket, last_activity_ref):
+    while True:
+        await asyncio.sleep(10)  # Check every 10 seconds
+
+        # Calculate idle time
+        idle_seconds = (datetime.now() - last_activity_ref).total_seconds()
+
+        # Close connection if idle time exceeds timeout
+        if idle_seconds >= Config.timeout_seconds:
+            print(f"Closing inactive connection after {idle_seconds} seconds")
+            await websocket.close(code=1000, reason="Timeout due to inactivity")
+            break

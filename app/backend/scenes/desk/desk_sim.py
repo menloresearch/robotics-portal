@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-
+from datetime import datetime
 from fastapi import WebSocket, WebSocketDisconnect
 from scenes.scene_abstract import SceneAbstract
 from utils.utils import (
@@ -112,6 +112,7 @@ class BeatTheDeskSim(SceneAbstract):
         actions_queue: asyncio.Queue,
         client_id: str,
         websocket: WebSocket,
+        last_activity: datetime
     ):
         try:
             while True:
@@ -122,7 +123,7 @@ class BeatTheDeskSim(SceneAbstract):
                     message_data = json.loads(data)
                 except json.JSONDecodeError:
                     message_data = {"type": "message", "content": data}
-
+                last_activity = datetime.now()
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected")
             raise

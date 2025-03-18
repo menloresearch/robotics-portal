@@ -80,6 +80,7 @@ Provide a JSON-formatted action sequence that can be directly parsed for robot m
 - always calculate distance to float number that I can use it directly, the result can be rough to 2 decimas
 - always decided to use shortest path
 - Oy is in the left of Ox
+- If the user didn't ask to move or do any actions, just reply as normal
 """
 
 # API_URL =

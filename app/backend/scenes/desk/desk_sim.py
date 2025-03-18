@@ -21,6 +21,8 @@ class BeatTheDeskSim(SceneAbstract):
     def __init__(self, objects) -> None:
         super().__init__()
         self.env = BeatTheDeskEnv(objects)
+        self.objects = objects
+        self.transform_objs()
         self.path = []
 
     async def server_processor(
@@ -32,7 +34,7 @@ class BeatTheDeskSim(SceneAbstract):
     ):
         try:
             zoom = 0
-            steps = 300
+            steps = 200
             step = 0
             stop = True
 
@@ -71,7 +73,7 @@ class BeatTheDeskSim(SceneAbstract):
                         action = np.array(await actions_queue.get())
                         print("action: ", action)
                         target = action[0:3] / 100
-                        target[2] += 0.75
+                        target[2] += 0.955
                         print("target: ", target)
                         qpos = self.env.ik([*arm_pos, *finger_pos], target)
                         self.path.append((qpos, action[6]))
@@ -170,13 +172,10 @@ class BeatTheDeskSim(SceneAbstract):
                         async with aiohttp.ClientSession() as session:
                             robot_task_data = {
                                 "instruction": message_data["content"],
-                                "objects": [
-                                    {"red-cube": [51, 43, 17]},
-                                    {"black-cube": [44, 58, 17]},
-                                    {"purple-cube": [74, 59, 17]},
-                                    {"green-cube": [65, 82, 17]},
-                                ],
+                                "objects": self.objects,
                             }
+
+                            print(robot_task_data)
 
                             async with session.post(
                                 "http://10.200.20.109:3348/robot/task",
@@ -217,3 +216,15 @@ class BeatTheDeskSim(SceneAbstract):
         except Exception as e:
             logger.error(f"Client handler error for client {client_id}: {str(e)}")
             raise
+
+    def transform_objs(self):
+        new_objs = []
+        for obj in self.objects:
+            for k, v in obj.items():
+                tmp = v
+                tmp[0] = int(tmp[0] * 100)
+                tmp[1] = int(tmp[1] * 100)
+                tmp[2] = 17
+                new_objs.append({k: tmp})
+
+        self.objects = new_objs

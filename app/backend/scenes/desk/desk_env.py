@@ -44,18 +44,28 @@ class BeatTheDeskEnv:
             show_FPS=False,
         )
 
-        _ = self.scene.add_entity(gs.morphs.Plane())
         _ = self.scene.add_entity(
-            gs.morphs.MJCF(
-                file="scenes/desk/furniture/simpleTable.xml",
-                pos=(0.5, 0.5, 0),
+            gs.morphs.Plane(),
+        )
+
+        _ = self.scene.add_entity(
+            gs.morphs.Box(
+                pos=(0.5, 0.5, 0.5),
+                size=(1, 1, 1),
+                fixed=True,
             ),
         )
+        # _ = self.scene.add_entity(
+        #     gs.morphs.MJCF(
+        #         file="scenes/desk/furniture/simpleTable.xml",
+        #         pos=(0.5, 0.5, 0),
+        #     ),
+        # )
 
         self.robot = self.scene.add_entity(
             gs.morphs.MJCF(
                 file="xml/franka_emika_panda/panda.xml",
-                pos=(0, 0.5, 0.75),
+                pos=(0, 0.5, 1),
                 euler=(0, 0, 0),
             ),
         )
@@ -70,8 +80,8 @@ class BeatTheDeskEnv:
 
         self.cam_god = self.scene.add_camera(
             res=(640, 480),
-            pos=(0, 4.5, 2.5),
-            lookat=(0, 0, 1.2),
+            pos=(0.25, 4.5, 2.5),
+            lookat=(0.25, 0, 1.2),
             fov=30,
             GUI=False,
         )
@@ -154,20 +164,51 @@ class BeatTheDeskEnv:
                 self.finger_dofs_idx,
             )
 
+    def parse_color_type(self, color_type_str):
+        if "-" in color_type_str:
+            color, obj_type = color_type_str.split("-", 1)
+            return color, obj_type
+        return None, color_type_str
+
     def spawn_objs(self, arr):
         size = (0.05, 0.05, 0.05)
+
+        # RGBA color tuples (values from 0 to 1)
+        colors = {
+            "red": (0.94, 0.5, 0.5, 1.0),
+            "black": (0.2, 0.2, 0.2, 1.0),
+            "green": (0.6, 0.98, 0.6, 1.0),
+            "purple": (0.7, 0.5, 0.9, 1.0),
+        }
+
         for item in arr:
             for key, value in item.items():
-                if "container" in key:
-                    self.scene.add_entity(gs.morphs.Mesh(file="furniture/"))
-                # pos = list(item.values())[0]
-                # self.scene.add_entity(
-                #     gs.morphs.Box(
-                #         size=size,
-                #         pos=pos,
-                #     ),
-                #     surface=gs.surfaces.Plastic(
-                #         color=(1.0, 0.0, 0.0, 1.0),
-                #         default_roughness=10.0,
-                #     ),
-                # )
+                color, obj = self.parse_color_type(key)
+
+                if obj == "container":
+                    self.scene.add_entity(
+                        # gs.morphs.Mesh(
+                        #     file="scenes/desk/furniture/tray_small.stl",
+                        #     pos=value,
+                        # ),
+                        gs.morphs.Box(
+                            size=(0.2, 0.15, 0.01),
+                            pos=value,
+                        ),
+                        surface=gs.surfaces.Plastic(
+                            color=colors[color],
+                            default_roughness=1.0,
+                        ),
+                    )
+
+                else:
+                    self.scene.add_entity(
+                        gs.morphs.Box(
+                            size=size,
+                            pos=value,
+                        ),
+                        surface=gs.surfaces.Plastic(
+                            color=colors[color],
+                            default_roughness=10.0,
+                        ),
+                    )

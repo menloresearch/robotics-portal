@@ -9,7 +9,7 @@ export const isLoading = writable<boolean>(false);
 export const receivedFirstFrame = writable<boolean>(false);
 
 // Environment settings
-export const selectedEnvironment = writable<string>("go2");
+export const selectedEnvironment = writable<string>("arm-stack");
 export const environments = writable([
   { id: "arm-stack", name: "Arm Stack" },
   { id: "arm-place", name: "Arm Place" },

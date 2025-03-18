@@ -33,7 +33,7 @@ async def get():
 
 
 @app.get("/defaul-scene-config")
-async def default_config():
+def default_config():
     return json.load(open("assets/default_scene_configuration.json", "r"))
 
 
@@ -82,9 +82,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
         if message_data.get("type") == "env":
             if message_data.get("env") == "go2":
-                scene = Go2Sim(config=message_data.get("config", {}))
+                scene = Go2Sim(config=message_data.get("config", default_config()["scenes"].get("go2",{})))
             elif message_data.get("env") == "g1":
-                scene = G1Sim(config=message_data.get("config", {}))
+                scene = G1Sim(config=message_data.get("config", default_config()["scenes"].get("g1",{})))
             elif message_data.get("env") == "arm":
                 scene = BeatTheDeskSim(objects)
 

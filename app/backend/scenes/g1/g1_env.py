@@ -70,7 +70,7 @@ class G1Env:
         self.inv_base_init_quat = inv_quat(self.base_init_quat)
         self.robot = self.scene.add_entity(
             gs.morphs.URDF(
-                file="urdf/g1/g1_12dof.urdf",
+                file="assets/g1/g1_12dof.urdf",
                 pos=self.base_init_pos.cpu().numpy(),
                 quat=self.base_init_quat.cpu().numpy(),
             ),

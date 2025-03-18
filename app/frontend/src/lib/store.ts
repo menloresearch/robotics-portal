@@ -11,9 +11,8 @@ export const receivedFirstFrame = writable<boolean>(false);
 // Environment settings
 export const selectedEnvironment = writable<string>("go2");
 export const environments = writable([
-  { id: "go2", name: "Go2" },
-  { id: "g1", name: "G1" },
-  { id: "arm", name: "Arm" },
+  { id: "arm-stack", name: "Arm Stack" },
+  { id: "arm-place", name: "Arm Place" },
 ]);
 
 // Telemetry data

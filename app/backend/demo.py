@@ -67,17 +67,17 @@ async def websocket_endpoint(websocket: WebSocket):
     )
 
     objects_stack = [
-        {"red-cube": [0.51, 0.43, 0.8]},
-        {"black-cube": [0.44, 0.58, 0.8]},
-        {"purple-cube": [0.74, 0.59, 0.8]},
-        {"green-cube": [0.65, 0.82, 0.8]},
+        {"red-cube": [0.51, 0.43, 1]},
+        {"black-cube": [0.44, 0.58, 1]},
+        {"purple-cube": [0.74, 0.59, 1]},
+        {"green-cube": [0.65, 0.82, 1]},
     ]
 
     objects_place = [
-        {"red-cube": [0.51, 0.43, 0.8]},
-        {"black-cube": [0.44, 0.58, 0.8]},
-        {"purple-container": [0.74, 0.59, 0.8]},
-        {"green-container": [0.65, 0.82, 0.8]},
+        {"red-cube": [0.51, 0.43, 1]},
+        {"black-cube": [0.44, 0.58, 1]},
+        {"purple-container": [0.74, 0.59, 1]},
+        {"green-container": [0.5, 0.82, 1]},
     ]
 
     # Will only advance after receiving text for environment from websocket

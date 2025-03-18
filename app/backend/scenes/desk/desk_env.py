@@ -157,16 +157,17 @@ class BeatTheDeskEnv:
     def spawn_objs(self, arr):
         size = (0.05, 0.05, 0.05)
         for item in arr:
-            pos = list(item.values())[0]
-            print("cube pos: ", pos)
-            self.scene.add_entity(
-                gs.morphs.Box(
-                    size=size,
-                    pos=pos,
-                ),
-                surface=gs.surfaces.Plastic(
-                    color=(1.0, 0.0, 0.0, 1.0),
-                    default_roughness=10.0,
-                ),
-                # vis_mode="visual",
-            )
+            for key, value in item.items():
+                if "container" in key:
+                    self.scene.add_entity(gs.morphs.Mesh(file="furniture/"))
+                # pos = list(item.values())[0]
+                # self.scene.add_entity(
+                #     gs.morphs.Box(
+                #         size=size,
+                #         pos=pos,
+                #     ),
+                #     surface=gs.surfaces.Plastic(
+                #         color=(1.0, 0.0, 0.0, 1.0),
+                #         default_roughness=10.0,
+                #     ),
+                # )

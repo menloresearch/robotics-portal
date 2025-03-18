@@ -71,8 +71,7 @@ class BeatTheDeskSim(SceneAbstract):
                         action = np.array(await actions_queue.get())
                         print("action: ", action)
                         target = action[0:3] / 100
-                        target[0] += 0.005
-                        target[2] += 0.74
+                        target[2] += 0.75
                         print("target: ", target)
                         qpos = self.env.ik([*arm_pos, *finger_pos], target)
                         self.path.append((qpos, action[6]))

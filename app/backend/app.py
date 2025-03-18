@@ -73,20 +73,13 @@ async def websocket_endpoint(websocket: WebSocket):
         data = await websocket.receive_text()
         message_data = json.loads(data)
 
-        objects = [
-            {"red-cube": [0.51, 0.43, 0.8]},
-            {"black-cube": [0.44, 0.58, 0.8]},
-            {"purple-cube": [0.74, 0.59, 0.8]},
-            {"green-cube": [0.65, 0.82, 0.8]},
-        ]
-
         if message_data.get("type") == "env":
             if message_data.get("env") == "go2":
                 scene = Go2Sim(config=message_data.get("config", default_config()["scenes"].get("go2",{})))
             elif message_data.get("env") == "g1":
                 scene = G1Sim(config=message_data.get("config", default_config()["scenes"].get("g1",{})))
             elif message_data.get("env") == "arm":
-                scene = BeatTheDeskSim(objects)
+                scene = BeatTheDeskSim(config=message_data.get("config", default_config()["scenes"].get("g1",{})))
 
             break
 

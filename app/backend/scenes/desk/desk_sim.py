@@ -18,8 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 class BeatTheDeskSim(SceneAbstract):
-    def __init__(self, objects) -> None:
+    def __init__(self, config = {}) -> None:
         super().__init__()
+        objects = config.get("scene", {}).get("entities", [])
         self.env = BeatTheDeskEnv(objects)
         self.path = []
 
@@ -141,7 +142,8 @@ class BeatTheDeskSim(SceneAbstract):
             logger.error(f"Server processor for client {client_id} cancelled")
             return
         except Exception as e:
-            logger.error(f"Server processor error for client {client_id}: {str(e)}")
+            logger.error(
+                f"Server processor error for client {client_id}: {str(e)}")
             return
 
     async def client_handler(
@@ -185,7 +187,8 @@ class BeatTheDeskSim(SceneAbstract):
                             ) as response:
                                 if response.status == 200:
                                     response_data = await response.json()
-                                    logger.info(f"Robot task response: {response_data}")
+                                    logger.info(
+                                        f"Robot task response: {response_data}")
                                     for action in response_data["actions"]:
                                         await actions_queue.put(action)
 
@@ -204,7 +207,8 @@ class BeatTheDeskSim(SceneAbstract):
                                         f"Robot task request failed with status {response.status}"
                                     )
                     except Exception as e:
-                        logger.error(f"Error making robot task request: {str(e)}")
+                        logger.error(
+                            f"Error making robot task request: {str(e)}")
 
                 else:
                     await message_queue.put(message_data)
@@ -215,5 +219,6 @@ class BeatTheDeskSim(SceneAbstract):
         except asyncio.CancelledError:
             logger.info(f"Client handler for client {client_id} cancelled")
         except Exception as e:
-            logger.error(f"Client handler error for client {client_id}: {str(e)}")
+            logger.error(
+                f"Client handler error for client {client_id}: {str(e)}")
             raise

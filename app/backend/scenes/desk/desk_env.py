@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 class BeatTheDeskEnv:
     def __init__(self, objects) -> None:
-        self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
-        self.kv = [450, 450, 350, 350, 200, 200, 200, 10, 10]
+        self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2200, 100, 100]
+        self.kv = [450, 450, 350, 350, 200, 200, 300, 10, 10]
         self.force_range = [
             [-87, -87, -87, -87, -12, -12, -12, -100, -100],
             [87, 87, 87, 87, 12, 12, 12, 100, 100],
@@ -34,6 +34,9 @@ class BeatTheDeskEnv:
         ]
 
         self.scene = gs.Scene(
+            vis_options=gs.options.VisOptions(
+                show_world_frame=False,
+            ),
             viewer_options=gs.options.ViewerOptions(
                 camera_pos=(3, 0.6, 2.5),
                 camera_lookat=(0.0, 0.6, 0.5),
@@ -50,22 +53,20 @@ class BeatTheDeskEnv:
 
         _ = self.scene.add_entity(
             gs.morphs.Box(
-                pos=(0.5, 0.5, 0.5),
-                size=(1, 1, 1),
+                pos=(0.5, 0.5, 0),
+                size=(1, 1, 0.02),
                 fixed=True,
+                collision=False,
+            ),
+            surface=gs.surfaces.Plastic(
+                color=(0.82, 0.71, 0.55, 1.0),
             ),
         )
-        # _ = self.scene.add_entity(
-        #     gs.morphs.MJCF(
-        #         file="scenes/desk/furniture/simpleTable.xml",
-        #         pos=(0.5, 0.5, 0),
-        #     ),
-        # )
 
         self.robot = self.scene.add_entity(
             gs.morphs.MJCF(
                 file="xml/franka_emika_panda/panda.xml",
-                pos=(0, 0.5, 1),
+                pos=(0, 0.5, 0),
                 euler=(0, 0, 0),
             ),
         )
@@ -73,15 +74,15 @@ class BeatTheDeskEnv:
         self.cam = self.scene.add_camera(
             res=(640, 480),
             pos=(4, 0.5, 2.5),
-            lookat=(0, 0.25, 1.2),
+            lookat=(0, 0.5, 0),
             fov=30,
             GUI=False,
         )
 
         self.cam_god = self.scene.add_camera(
             res=(640, 480),
-            pos=(0.25, 4.5, 2.5),
-            lookat=(0.25, 0, 1.2),
+            pos=(0.5, 4.5, 2.5),
+            lookat=(0.5, 0, 0),
             fov=30,
             GUI=False,
         )
@@ -192,10 +193,10 @@ class BeatTheDeskEnv:
                         #     pos=value,
                         # ),
                         gs.morphs.Box(
-                            size=(0.2, 0.15, 0.01),
+                            size=(0.2, 0.15, 0.02),
                             pos=value,
                         ),
-                        surface=gs.surfaces.Plastic(
+                        surface=gs.surfaces.Gold(
                             color=colors[color],
                             default_roughness=1.0,
                         ),
@@ -207,8 +208,8 @@ class BeatTheDeskEnv:
                             size=size,
                             pos=value,
                         ),
-                        surface=gs.surfaces.Plastic(
+                        surface=gs.surfaces.Gold(
                             color=colors[color],
-                            default_roughness=10.0,
+                            smooth=True,
                         ),
                     )

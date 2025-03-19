@@ -24,6 +24,15 @@ class BeatTheDeskSim(SceneAbstract):
         self.objects = objects
         self.transform_objs()
         self.path = []
+    
+    def get_cubes_locations(self):
+        return_list = []
+        for obj in self.env.cubes:
+            obj_ = {}
+            obj_[list(obj.keys())[0]] =[int(float(x)*100) for x in list(list(obj.values())[0].get_pos().cpu().numpy())] 
+            obj_[list(obj.keys())[0]][2] =17
+            return_list.append(obj_)
+        return return_list
 
     async def server_processor(
         self,
@@ -172,13 +181,13 @@ class BeatTheDeskSim(SceneAbstract):
                         async with aiohttp.ClientSession() as session:
                             robot_task_data = {
                                 "instruction": message_data["content"],
-                                "objects": self.objects,
+                                "objects": self.get_cubes_locations(),
                             }
 
                             print(robot_task_data)
 
                             async with session.post(
-                                "http://10.200.20.109:3348/robot/task",
+                                "http://localhost:3348/robot/task",
                                 headers={"Content-Type": "application/json"},
                                 json=robot_task_data,
                             ) as response:

@@ -17,6 +17,7 @@ class BeatTheDeskEnv:
         ]
         self.init_arm_dofs = [0, 0, 0, 0, 0, 0, 0]
         self.init_finger_dofs = [0.1, 0.1]
+        self.cubes = []
 
         self.arm_jnt_names = [
             "joint1",
@@ -45,6 +46,7 @@ class BeatTheDeskEnv:
             ),
             show_viewer=False,
             show_FPS=False,
+            rigid_options=gs.options.RigidOptions(max_collision_pairs=100)
         )
 
         _ = self.scene.add_entity(
@@ -187,7 +189,7 @@ class BeatTheDeskEnv:
                 color, obj = self.parse_color_type(key)
 
                 if obj == "container":
-                    self.scene.add_entity(
+                    obj_ = self.scene.add_entity(
                         # gs.morphs.Mesh(
                         #     file="scenes/desk/furniture/tray_small.stl",
                         #     pos=value,
@@ -201,9 +203,10 @@ class BeatTheDeskEnv:
                             default_roughness=1.0,
                         ),
                     )
+                    self.cubes.append({key:obj_})
 
                 else:
-                    self.scene.add_entity(
+                    obj_ = self.scene.add_entity(
                         gs.morphs.Box(
                             size=size,
                             pos=value,
@@ -213,3 +216,4 @@ class BeatTheDeskEnv:
                             smooth=True,
                         ),
                     )
+                    self.cubes.append({key:obj_})

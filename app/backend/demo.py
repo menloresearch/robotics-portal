@@ -76,7 +76,7 @@ async def websocket_endpoint(websocket: WebSocket):
     objects_place = [
         {"red-cube": [0.51, 0.43, 0]},
         {"black-cube": [0.44, 0.58, 0]},
-        {"purple-container": [0.74, 0.59, 0]},
+        # {"purple-container": [0.74, 0.59, 0]},
         {"green-container": [0.5, 0.82, 0]},
     ]
 

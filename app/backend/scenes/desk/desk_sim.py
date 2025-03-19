@@ -34,7 +34,7 @@ class BeatTheDeskSim(SceneAbstract):
     ):
         try:
             zoom = 0
-            steps = 200
+            steps = 120
             step = 0
             stop = True
 
@@ -73,7 +73,7 @@ class BeatTheDeskSim(SceneAbstract):
                         action = np.array(await actions_queue.get())
                         print("action: ", action)
                         target = action[0:3] / 100
-                        target[2] += 0.955
+                        target[2] -= 0.02
                         print("target: ", target)
                         qpos = self.env.ik([*arm_pos, *finger_pos], target)
                         self.path.append((qpos, action[6]))

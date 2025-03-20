@@ -17,17 +17,18 @@
       <ControlPanel />
     </div>
 
-    <!-- Telemetry positioned at bottom left -->
-    <div class="absolute left-6 bottom-6 pointer-events-auto">
-      <Telemetry />
-    </div>
-
-    <!-- Secondary View and Instruction -->
+    <!-- Secondary View, Telemetry, and Instruction -->
     <div
-      class="absolute right-6 top-[calc(210px+1.5rem)] pointer-events-auto max-w-sm"
+      class="absolute right-6 top-6 pointer-events-auto max-w-sm"
     >
       <div class="space-y-4">
-        <SecondaryView />
+        <!-- Secondary View and Telemetry in a bordered container -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
+          <div class="p-2 space-y-4">
+            <SecondaryView />
+            <Telemetry />
+          </div>
+        </div>
         <Instruction />
       </div>
     </div>

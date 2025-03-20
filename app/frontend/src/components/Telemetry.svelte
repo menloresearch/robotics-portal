@@ -11,7 +11,7 @@
   } from "$lib/store";
 </script>
 
-<div class="bg-gray-800 rounded-lg p-4">
+<div class="p-4">
   <h2 class="text-xl font-semibold mb-4">Telemetry</h2>
   <div class="space-y-2 font-mono text-sm">
     <div class="flex justify-between">

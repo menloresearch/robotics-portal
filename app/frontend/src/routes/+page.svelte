@@ -9,25 +9,26 @@
 <div class="relative h-screen w-screen overflow-hidden">
   <!-- Full screen background MainView -->
   <MainView />
-  
+
   <!-- Floating UI components with z-index to appear above MainView -->
   <div class="fixed inset-0 pointer-events-none">
-    <div class="container mx-auto h-full p-4">
-      <div class="grid grid-cols-12 gap-4 h-full pointer-events-none">
-        <!-- Left Side Panels - Control Panel and Telemetry -->
-        <div class="col-span-2 space-y-4 pointer-events-auto">
-          <ControlPanel />
-          <Telemetry />
-        </div>
+    <!-- Left floating control panel centered vertically with slide animation -->
+    <div class="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-auto">
+      <ControlPanel />
+    </div>
 
-        <!-- Empty middle space -->
-        <div class="col-span-7"></div>
+    <!-- Telemetry positioned at bottom left -->
+    <div class="absolute left-6 bottom-6 pointer-events-auto">
+      <Telemetry />
+    </div>
 
-        <!-- Right Side Panels -->
-        <div class="col-span-3 space-y-4 pointer-events-auto">
-          <SecondaryView />
-          <Instruction />
-        </div>
+    <!-- Secondary View and Instruction -->
+    <div
+      class="absolute right-6 top-[calc(210px+1.5rem)] pointer-events-auto max-w-sm"
+    >
+      <div class="space-y-4">
+        <SecondaryView />
+        <Instruction />
       </div>
     </div>
   </div>

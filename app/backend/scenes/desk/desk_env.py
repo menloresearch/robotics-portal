@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 class BeatTheDeskEnv:
     def __init__(self, objects) -> None:
-        self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2200, 100, 100]
-        self.kv = [450, 450, 350, 350, 200, 200, 300, 10, 10]
+        self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
+        self.kv = [450, 450, 350, 350, 200, 200, 250, 10, 10]
         self.force_range = [
             [-87, -87, -87, -87, -12, -12, -12, -100, -100],
             [87, 87, 87, 87, 12, 12, 12, 100, 100],
@@ -46,7 +46,7 @@ class BeatTheDeskEnv:
             ),
             show_viewer=False,
             show_FPS=False,
-            rigid_options=gs.options.RigidOptions(max_collision_pairs=100)
+            rigid_options=gs.options.RigidOptions(max_collision_pairs=100),
         )
 
         _ = self.scene.add_entity(
@@ -74,7 +74,7 @@ class BeatTheDeskEnv:
         )
 
         self.cam = self.scene.add_camera(
-            res=(640, 480),
+            res=(1920, 1080),
             pos=(4, 0.5, 2.5),
             lookat=(0, 0.5, 0),
             fov=30,
@@ -203,7 +203,7 @@ class BeatTheDeskEnv:
                             default_roughness=1.0,
                         ),
                     )
-                    self.cubes.append({key:obj_})
+                    self.cubes.append({key: obj_})
 
                 else:
                     obj_ = self.scene.add_entity(
@@ -216,4 +216,4 @@ class BeatTheDeskEnv:
                             smooth=True,
                         ),
                     )
-                    self.cubes.append({key:obj_})
+                    self.cubes.append({key: obj_})

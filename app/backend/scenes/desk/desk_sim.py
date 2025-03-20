@@ -24,13 +24,16 @@ class BeatTheDeskSim(SceneAbstract):
         self.objects = objects
         self.transform_objs()
         self.path = []
-    
+
     def get_cubes_locations(self):
         return_list = []
         for obj in self.env.cubes:
             obj_ = {}
-            obj_[list(obj.keys())[0]] =[int(float(x)*100) for x in list(list(obj.values())[0].get_pos().cpu().numpy())] 
-            obj_[list(obj.keys())[0]][2] =17
+            obj_[list(obj.keys())[0]] = [
+                int(float(x) * 100)
+                for x in list(list(obj.values())[0].get_pos().cpu().numpy())
+            ]
+            obj_[list(obj.keys())[0]][2] = 17
             return_list.append(obj_)
         return return_list
 
@@ -43,9 +46,17 @@ class BeatTheDeskSim(SceneAbstract):
     ):
         try:
             zoom = 0
-            steps = 120
+            steps_set = [
+                200,
+                30,
+                50,
+                30,
+                150,
+                30,
+                30,
+            ]
             step = 0
-            stop = True
+            macro = 0
 
             cam_pos = self.env.cam_god.pos
             arm_pos = self.env.init_arm_dofs
@@ -78,23 +89,41 @@ class BeatTheDeskSim(SceneAbstract):
                             actions_queue.get_nowait()
                             actions_queue.task_done()
 
-                    if (not actions_queue.empty()) and stop:
+                    if not actions_queue.empty():
                         action = np.array(await actions_queue.get())
                         print("action: ", action)
+
                         target = action[0:3] / 100
                         target[2] -= 0.02
                         print("target: ", target)
+
                         qpos = self.env.ik([*arm_pos, *finger_pos], target)
                         self.path.append((qpos, action[6]))
                         step = 0
-                        stop = False
 
-                    if step > steps and len(self.path) > 0:
-                        step = 0
-                        stop = True
-                        path = self.path.pop(0)
-                        arm_pos = path[0][:-2]
-                        finger_grasp = False if path[1] == 1 else True
+                        if arm_pos == self.env.init_arm_dofs:
+                            path = self.path.pop(0)
+                            arm_pos = path[0][:-2]
+                            finger_grasp = False if path[1] == 1 else True
+
+                    elif len(self.path) > 0 or macro == 6:
+                        print("macro start: ", macro)
+                        if step > steps_set[macro]:
+                            if len(self.path) > 0:
+                                path = self.path.pop(0)
+                            arm_pos = path[0][:-2]
+                            finger_grasp = False if path[1] == 1 else True
+
+                            macro += 1
+                            print("macro increase: ", macro)
+
+                            step = 0
+                        else:
+                            step += 1
+
+                        if macro > 6:
+                            macro = 0
+                            arm_pos = self.env.init_arm_dofs
 
                     self.env.robot.control_dofs_position(
                         arm_pos,
@@ -128,7 +157,6 @@ class BeatTheDeskSim(SceneAbstract):
                         websocket, json.dumps(processed_message), client_id
                     )
 
-                    step += 1
                     await asyncio.sleep(0.001)
 
                 except WebSocketDisconnect:
@@ -187,7 +215,7 @@ class BeatTheDeskSim(SceneAbstract):
                             print(robot_task_data)
 
                             async with session.post(
-                                "http://localhost:3348/robot/task",
+                                "http://10.200.20.109:3348/robot/task",
                                 headers={"Content-Type": "application/json"},
                                 json=robot_task_data,
                             ) as response:

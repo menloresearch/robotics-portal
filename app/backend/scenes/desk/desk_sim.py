@@ -107,7 +107,6 @@ class BeatTheDeskSim(SceneAbstract):
                             finger_grasp = False if path[1] == 1 else True
 
                     elif len(self.path) > 0 or macro == 6:
-                        print("macro start: ", macro)
                         if step > steps_set[macro]:
                             if len(self.path) > 0:
                                 path = self.path.pop(0)
@@ -115,15 +114,17 @@ class BeatTheDeskSim(SceneAbstract):
                             finger_grasp = False if path[1] == 1 else True
 
                             macro += 1
-                            print("macro increase: ", macro)
-
                             step = 0
                         else:
                             step += 1
 
                         if macro > 6:
                             macro = 0
-                            arm_pos = self.env.init_arm_dofs
+                            print("target before: ", target)
+                            target[2] = 0.5
+                            print("target after: ", target)
+                            qpos = self.env.ik([*arm_pos, *finger_pos], target)
+                            arm_pos = qpos[:-2]
 
                     self.env.robot.control_dofs_position(
                         arm_pos,

@@ -3,7 +3,8 @@
   import Telemetry from "../components/Telemetry.svelte";
   import MainView from "../components/MainView.svelte";
   import SecondaryView from "../components/SecondaryView.svelte";
-  import Instruction from "../components/Instruction.svelte";
+  import InputBox from "../components/InputBox.svelte";
+  import ReasoningLog from "../components/ReasoningLog.svelte";
 </script>
 
 <div class="relative h-screen w-screen overflow-hidden">
@@ -17,7 +18,7 @@
       <ControlPanel />
     </div>
 
-    <!-- Secondary View and Telemetry -->
+    <!-- Secondary View, Telemetry, and Reasoning Log -->
     <div
       class="absolute right-6 top-6 pointer-events-auto max-w-sm"
     >
@@ -29,12 +30,14 @@
             <Telemetry />
           </div>
         </div>
+        <!-- Reasoning Log below -->
+        <ReasoningLog />
       </div>
     </div>
     
-    <!-- Instruction at middle-bottom -->
+    <!-- Input Box at middle-bottom -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto max-w-2xl w-full px-4">
-      <Instruction />
+      <InputBox />
     </div>
   </div>
 </div>

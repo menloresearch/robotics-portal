@@ -46,14 +46,14 @@
   <div class="relative w-full h-full flex items-center justify-center">
     <!-- Container to maintain 16:9 aspect ratio -->
     <div
-      class="relative"
-      style="aspect-ratio: 16/9; width: 100%; max-height: 100%;"
+      class="relative w-full"
+      style="aspect-ratio: 16/9; max-height: 100%;"
     >
       <canvas
         id="imageDisplay"
         width="1920"
         height="1080"
-        class="absolute top-0 left-0 w-full h-full object-contain cursor-grab active:cursor-grabbing"
+        class="absolute top-0 left-0 w-full h-full object-cover cursor-grab active:cursor-grabbing"
       ></canvas>
       {#if $isLoading && $isConnected}
         <div

@@ -46,15 +46,7 @@ class BeatTheDeskSim(SceneAbstract):
     ):
         try:
             zoom = 0
-            steps_set = [
-                200,
-                30,
-                50,
-                30,
-                150,
-                30,
-                30,
-            ]
+            steps_set = [200, 30, 50, 30, 150, 30, 30]
             step = 0
             macro = 0
 
@@ -62,6 +54,9 @@ class BeatTheDeskSim(SceneAbstract):
             arm_pos = self.env.init_arm_dofs
             finger_pos = self.env.init_finger_dofs
             finger_grasp = False
+
+            prev_qpos = [*arm_pos, *finger_pos]
+            curr_qpos = [*arm_pos, *finger_pos]
 
             while True:
                 try:
@@ -97,34 +92,37 @@ class BeatTheDeskSim(SceneAbstract):
                         target[2] -= 0.02
                         print("target: ", target)
 
-                        qpos = self.env.ik([*arm_pos, *finger_pos], target)
-                        self.path.append((qpos, action[6]))
-                        step = 0
+                        prev_qpos = curr_qpos
+                        curr_qpos = self.env.ik(curr_qpos, target)
 
-                        if arm_pos == self.env.init_arm_dofs:
-                            path = self.path.pop(0)
-                            arm_pos = path[0][:-2]
-                            finger_grasp = False if path[1] == 1 else True
-
-                    elif len(self.path) > 0 or macro == 6:
-                        if step > steps_set[macro]:
-                            if len(self.path) > 0:
-                                path = self.path.pop(0)
-                            arm_pos = path[0][:-2]
-                            finger_grasp = False if path[1] == 1 else True
-
-                            macro += 1
-                            step = 0
+                        if macro == 0 or macro == 4:
+                            paths = self.env.path_to(
+                                prev_qpos,
+                                curr_qpos,
+                            )
+                            for path in paths:
+                                self.path.append((path, action[6]))
                         else:
-                            step += 1
+                            self.path.extend([(curr_qpos, action[6])] * 80)
 
-                        if macro > 6:
+                        if macro == 6:
                             macro = 0
-                            print("target before: ", target)
+                            prev_qpos = curr_qpos
                             target[2] = 0.5
-                            print("target after: ", target)
-                            qpos = self.env.ik([*arm_pos, *finger_pos], target)
-                            arm_pos = qpos[:-2]
+                            curr_qpos = self.env.ik(curr_qpos, target)
+                            paths = self.env.path_to(
+                                prev_qpos,
+                                curr_qpos,
+                            )
+                            for path in paths:
+                                self.path.append((path, action[6]))
+                        else:
+                            macro += 1
+
+                    if len(self.path) > 0:
+                        path = self.path.pop(0)
+                        arm_pos = path[0][:-2]
+                        finger_grasp = False if path[1] == 1 else True
 
                     self.env.robot.control_dofs_position(
                         arm_pos,
@@ -138,11 +136,15 @@ class BeatTheDeskSim(SceneAbstract):
 
                     self.env.step()
 
+                    # lookat = np.array(self.env.cam.lookat)
+                    # self.env.cam.set_pose(
+                    #     pos=cam_pos + zoom * (cam_pos - lookat),
+                    # )
                     main_view, _, _, _ = self.env.cam.render()
-                    lookat = np.array(self.env.cam_god.lookat)
-                    self.env.cam_god.set_pose(
-                        pos=cam_pos + zoom * (cam_pos - lookat),
-                    )
+
+                    # self.env.cam_god.set_pose(
+                    #     pos=self.env.end_effector.get_pos(),
+                    # )
                     god_view, _, _, _ = self.env.cam_god.render()
 
                     main_view = main_view[:, :, ::-1]

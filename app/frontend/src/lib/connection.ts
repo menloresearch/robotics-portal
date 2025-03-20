@@ -197,4 +197,3 @@ export function sendCommand(commandText: string) {
   }
   return false;
 }
-

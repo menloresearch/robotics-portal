@@ -24,22 +24,21 @@
         </div>
       {/if}
     </div>
-    <div class="flex space-x-2 mt-auto">
+    <div class="flex flex-col gap-2 mt-auto w-full">
       <input
         type="text"
         bind:value={$instruction}
         placeholder="Instruction..."
-        class="flex-1 px-3 py-2 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:border-blue-500"
+        class="w-full px-3 py-2 bg-gray-700 rounded-md border border-gray-600 focus:outline-none focus:border-blue-500"
         on:keydown={(e) => e.key === "Enter" && handleSendCommand()}
       />
       <button
         on:click={handleSendCommand}
         disabled={!$isConnected}
-        class="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+        class="w-full sm:w-auto px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
       >
         Send
       </button>
     </div>
   </div>
 </div>
-

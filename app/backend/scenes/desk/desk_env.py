@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class BeatTheDeskEnv:
     def __init__(self, objects) -> None:
         self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
-        self.kv = [450, 450, 350, 350, 200, 200, 250, 10, 10]
+        self.kv = [450, 450, 350, 350, 200, 200, 200, 10, 10]
         self.force_range = [
             [-87, -87, -87, -87, -12, -12, -12, -100, -100],
             [87, 87, 87, 87, 12, 12, 12, 100, 100],
@@ -144,13 +144,13 @@ class BeatTheDeskEnv:
 
         return qpos
 
-    def path_to(self, qpos):
+    def path_to(self, start_qpos, qpos):
         path = self.robot.plan_path(
-            # qpos_start=start_pos,
+            qpos_start=start_qpos,
             qpos_goal=qpos,
-            num_waypoints=300,  # 2s duration
-            timeout=20,
-            planner="BITstar",
+            num_waypoints=150,
+            timeout=5,
+            planner="RRTConnect",
         )
 
         return path

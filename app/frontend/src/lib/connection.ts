@@ -155,13 +155,14 @@ export function disconnect() {
   }
 }
 
-export function switchCamera(cameraIndex: number) {
+export function switchCamera(cameraIndex: number, view: 'main' | 'secondary' = 'main') {
   const currentSocket = get(socket);
   if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
     currentSocket.send(
       JSON.stringify({
         type: "camera_change",
         camera: cameraIndex,
+        view: view
       }),
     );
   }

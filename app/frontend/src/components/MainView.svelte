@@ -41,14 +41,11 @@
   <div
     class="absolute top-0 left-0 p-2 bg-gray-700 bg-opacity-80 rounded-br-lg z-10"
   >
-    <h2 class="text-sm font-medium">Main Camera View</h2>
+    <h2 class="text-sm font-medium">Main View</h2>
   </div>
   <div class="relative w-full h-full flex items-center justify-center">
     <!-- Container to maintain 16:9 aspect ratio -->
-    <div
-      class="relative w-full"
-      style="aspect-ratio: 16/9; max-height: 100%;"
-    >
+    <div class="relative w-full" style="aspect-ratio: 16/9; max-height: 100%;">
       <canvas
         id="imageDisplay"
         width="1920"

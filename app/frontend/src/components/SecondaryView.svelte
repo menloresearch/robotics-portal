@@ -8,6 +8,7 @@
   } from "$lib/store";
   import { handleZoom } from "$lib/interacts";
   import { browser } from "$app/environment";
+  import { switchCamera } from "$lib/connection";
 
   onMount(() => {
     if (!browser) return;
@@ -42,12 +43,62 @@
       canvas.removeEventListener("wheel", handleZoom);
     }
   });
+
+  // Camera selection
+  let selectedMainCamera = 0;
+  let selectedSecondaryCamera = 0;
 </script>
 
-<div class="bg-gray-800 rounded-lg overflow-hidden">
-  <div class="p-2 bg-gray-700">
-    <h2 class="text-sm font-medium">Secondary View</h2>
+<div class="overflow-hidden relative">
+  <div class="p-2 bg-gray-700 flex items-center">
+    <h2
+      class="text-xs font-medium leading-tight flex-shrink-0 mr-4 pl-4"
+      style="width: 100px;"
+    >
+      Secondary<br />View
+    </h2>
+
+    <!-- Camera selection dropdowns taking more space -->
+    <div class="flex space-x-3 flex-grow">
+      <div class="flex flex-col">
+        <label
+          for="mainCamera"
+          class="text-xs text-gray-300 mb-1 leading-tight text-left"
+          >Main View</label
+        >
+        <select
+          id="mainCamera"
+          bind:value={selectedMainCamera}
+          on:change={() => switchCamera(selectedMainCamera, "main")}
+          disabled={!$isConnected}
+          class="px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-xs"
+        >
+          <option value={0}>First person</option>
+          <option value={1}>Third person</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col">
+        <label
+          for="secondaryCamera"
+          class="text-xs text-gray-300 mb-1 leading-tight text-left"
+        >
+          Secondary View
+        </label>
+        <select
+          id="secondaryCamera"
+          bind:value={selectedSecondaryCamera}
+          on:change={() => switchCamera(selectedSecondaryCamera, "secondary")}
+          disabled={!$isConnected}
+          class="px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-xs"
+        >
+          <option value={0}>First person</option>
+          <option value={1}>Third person</option>
+        </select>
+      </div>
+    </div>
   </div>
+
   <div class="relative">
     <canvas id="secondaryDisplay" width="640" height="480" class="w-full h-auto"
     ></canvas>

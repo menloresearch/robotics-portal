@@ -118,26 +118,6 @@
             </button>
           </div>
         </div>
-
-        <div class="space-y-2">
-          <h3 class="text-sm font-medium text-gray-400">Camera Selection</h3>
-          <div class="grid grid-cols-1 gap-2">
-            <button
-              on:click={() => switchCamera(0)}
-              disabled={!$isConnected}
-              class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
-            >
-              First person view
-            </button>
-            <button
-              on:click={() => switchCamera(1)}
-              disabled={!$isConnected}
-              class="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
-            >
-              Third person view
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 

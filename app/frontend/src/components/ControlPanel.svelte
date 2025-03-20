@@ -53,7 +53,7 @@
             <button
               on:click={connect}
               disabled={$isConnected || $isLoading}
-              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed relative"
+              class="px-4 py-2 bg-gray-700 text-[#F95D03] font-medium border border-gray-600 rounded-md hover:bg-gray-600 hover:border-[#F95D03] disabled:text-gray-500 disabled:border-gray-700 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 relative"
             >
               {#if $isLoading}
                 <span class="flex items-center justify-center">
@@ -86,7 +86,7 @@
             <button
               on:click={disconnect}
               disabled={!$isConnected}
-              class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-700 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-gray-700 text-[#F95D03] font-medium border border-gray-600 rounded-md hover:bg-gray-600 hover:border-[#F95D03] disabled:text-gray-500 disabled:border-gray-700 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200"
             >
               Disconnect
             </button>
@@ -94,7 +94,7 @@
         </div>
 
         <div class="space-y-2">
-          <h3 class="text-sm font-medium text-gray-400">Frame Rate Control</h3>
+          <h3 class="text-sm font-medium text-gray-400">FPS</h3>
           <div class="flex flex-col space-y-2">
             <input
               id="fpsInput"
@@ -112,7 +112,7 @@
                 setFrameRate(input.value);
               }}
               disabled={!$isConnected}
-              class="px-2 py-1 bg-gray-700 rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              class="px-2 py-1 bg-gray-700 text-[#F95D03] font-medium border border-gray-600 rounded-md hover:bg-gray-600 hover:border-[#F95D03] disabled:text-gray-500 disabled:border-gray-700 disabled:bg-gray-800 disabled:cursor-not-allowed text-sm transition-colors duration-200"
             >
               Set FPS
             </button>
@@ -124,7 +124,7 @@
     <!-- Vertical "Control" tab attached to the panel -->
     <button
       on:click={togglePanel}
-      class="bg-[#FF8F5E] text-white py-6 px-3 rounded-r-lg border-t border-r border-b border-gray-700 shadow-lg flex items-center justify-center self-center h-44 w-10 cursor-pointer hover:brightness-110 transition-all"
+      class="bg-gray-800 text-[#F95D03] py-6 px-3 rounded-r-lg border-t border-r border-b border-gray-700 shadow-lg flex items-center justify-center self-center h-44 w-10 cursor-pointer hover:brightness-110 transition-all"
     >
       <div class="vertical-text font-medium text-sm">CONTROL</div>
     </button>

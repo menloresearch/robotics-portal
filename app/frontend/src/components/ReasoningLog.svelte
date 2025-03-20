@@ -1,7 +1,6 @@
 <script lang="ts">
   import { reasoningMessages } from "$lib/store";
   import { onMount } from "svelte";
-  import { formatRobotCommandText } from "$lib/parser";
 
   let isReasoningExpanded = false;
   let parsedMessages: string = "";
@@ -64,4 +63,3 @@
     {/if}
   </div>
 </div>
-

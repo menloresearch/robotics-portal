@@ -17,7 +17,7 @@
       <ControlPanel />
     </div>
 
-    <!-- Secondary View, Telemetry, and Instruction -->
+    <!-- Secondary View and Telemetry -->
     <div
       class="absolute right-6 top-6 pointer-events-auto max-w-sm"
     >
@@ -29,8 +29,12 @@
             <Telemetry />
           </div>
         </div>
-        <Instruction />
       </div>
+    </div>
+    
+    <!-- Instruction at middle-bottom -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto max-w-2xl w-full px-4">
+      <Instruction />
     </div>
   </div>
 </div>

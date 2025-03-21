@@ -19,12 +19,12 @@
     </div>
 
     <!-- Secondary View, Telemetry, and Reasoning Log -->
-    <div
-      class="absolute right-6 top-6 pointer-events-auto max-w-sm"
-    >
+    <div class="absolute right-6 top-6 pointer-events-auto max-w-sm">
       <div class="space-y-4">
         <!-- Secondary View and Telemetry in a bordered container -->
-        <div class="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
+        <div
+          class="bg-gray-800 rounded-lg border border-gray-700 shadow-lg overflow-hidden"
+        >
           <div class="p-2 space-y-4">
             <SecondaryView />
             <Telemetry />
@@ -34,9 +34,11 @@
         <ReasoningLog />
       </div>
     </div>
-    
+
     <!-- Input Box at middle-bottom -->
-    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto max-w-2xl w-full px-4">
+    <div
+      class="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto max-w-2xl w-full px-4"
+    >
       <InputBox />
     </div>
   </div>

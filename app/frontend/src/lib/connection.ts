@@ -16,7 +16,7 @@ import {
 import { get } from "svelte/store";
 import { viewRender } from "./msgHandler";
 
-export function connect() {
+export function connect(objectPositions?: any) {
   isLoading.set(true);
   receivedFirstFrame.set(false);
   reasoningMessages.set("");
@@ -35,13 +35,27 @@ export function connect() {
     statusColor.set("text-green-500");
     isConnected.set(true);
 
-    // Send environment selection message
-    webSocket.send(
-      JSON.stringify({
-        type: "env",
-        env: get(selectedEnvironment),
-      }),
-    );
+    // Send environment selection message with object positions if provided
+    const message: any = {
+      type: "env",
+      env: get(selectedEnvironment),
+    };
+    
+    // Add positions data if provided
+    if (objectPositions) {
+      // Convert object positions to array format with values divided by 100
+      message.positions = {};
+      for (const color in objectPositions) {
+        const obj = objectPositions[color];
+        message.positions[color] = [
+          obj.x / 100,
+          obj.y / 100,
+          obj.z / 100
+        ];
+      }
+    }
+    
+    webSocket.send(JSON.stringify(message));
   });
 
   // Listen for messages

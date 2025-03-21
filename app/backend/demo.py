@@ -67,17 +67,17 @@ async def websocket_endpoint(websocket: WebSocket):
     )
 
     objects_stack = [
-        {"red-cube": [0.51, 0.43, 0]},
-        {"black-cube": [0.44, 0.58, 0]},
-        {"purple-cube": [0.74, 0.59, 0]},
-        {"green-cube": [0.65, 0.82, 0]},
+        {"red-cube": []},
+        {"black-cube": []},
+        {"green-cube": []},
+        {"purple-cube": []},
     ]
 
     objects_place = [
-        {"red-cube": [0.51, 0.43, 0]},
-        {"black-cube": [0.44, 0.58, 0]},
+        {"red-cube": []},
+        {"black-cube": []},
+        {"green-container": []},
         # {"purple-container": [0.74, 0.59, 0]},
-        {"green-container": [0.5, 0.82, 0]},
     ]
 
     # Will only advance after receiving text for environment from websocket
@@ -87,9 +87,25 @@ async def websocket_endpoint(websocket: WebSocket):
 
         if message_data.get("type") == "env":
             if message_data.get("env") == "arm-stack":
+                objects = message_data.get("positions")
+                i = 0
+                for v in objects.values():
+                    for key in objects_stack[i].keys():
+                        objects_stack[i][key] = v
+                    i += 1
+                print(objects_stack)
+
                 scene = BeatTheDeskSim(objects_stack)
 
             elif message_data.get("env") == "arm-place":
+                objects = message_data.get("positions")
+                i = 0
+                for v in objects.values():
+                    for key in objects_place[i].keys():
+                        objects_place[i][key] = v
+                    i += 1
+                print(objects_place)
+
                 scene = BeatTheDeskSim(objects_place)
 
             break

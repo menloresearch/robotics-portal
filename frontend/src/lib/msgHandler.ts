@@ -20,13 +20,23 @@ export function viewRender(
     let fpsArray = get(fpsArrayStore);
     let latencyArray = get(latencyArrayStore);
 
-    // Create an image from the base64 data
     const now = performance.now();
-    const img = new Image();
 
-    img.onload = () => {
-      // Draw image on canvas
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    // Convert base64 to binary
+    const base64 = image;
+    const binary = atob(base64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    // Create blob and bitmap
+    const blob = new Blob([bytes.buffer], { type: "image/jpeg" });
+
+    createImageBitmap(blob).then((bitmap) => {
+      // Draw bitmap directly - more efficient than Image
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 
       // Update metrics
       frameCount += 1;
@@ -61,9 +71,6 @@ export function viewRender(
 
       // Resolve promise
       resolve(true);
-    };
-
-    // Set the source to the base64 image data
-    img.src = `data:image/jpeg;base64,${image}`;
+    });
   });
 }

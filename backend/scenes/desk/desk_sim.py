@@ -33,7 +33,7 @@ class BeatTheDeskSim(SceneAbstract):
                 int(float(x) * 100)
                 for x in list(list(obj.values())[0].get_pos().cpu().numpy())
             ]
-            obj_[list(obj.keys())[0]][2] = 17
+            obj_[list(obj.keys())[0]][2] += 3
             return_list.append(obj_)
         return return_list
 
@@ -89,31 +89,25 @@ class BeatTheDeskSim(SceneAbstract):
                         print("action: ", action)
 
                         target = action[0:3] / 100
-                        target[2] -= 0.02
+                        target[2] += 0.15
                         print("target: ", target)
 
                         prev_qpos = curr_qpos
                         curr_qpos = self.env.ik(curr_qpos, target)
 
                         if macro == 0 or macro == 4:
-                            paths = self.env.path_to(
-                                prev_qpos,
-                                curr_qpos,
-                            )
+                            paths = self.env.path_to(prev_qpos, curr_qpos, 150)
                             for path in paths:
                                 self.path.append((path, action[6]))
                         else:
-                            self.path.extend([(curr_qpos, action[6])] * 80)
+                            self.path.extend([(curr_qpos, action[6])] * 100)
 
                         if macro == 6:
                             macro = 0
                             prev_qpos = curr_qpos
                             target[2] = 0.5
                             curr_qpos = self.env.ik(curr_qpos, target)
-                            paths = self.env.path_to(
-                                prev_qpos,
-                                curr_qpos,
-                            )
+                            paths = self.env.path_to(prev_qpos, curr_qpos, 50)
                             for path in paths:
                                 self.path.append((path, action[6]))
                         else:
@@ -264,7 +258,7 @@ class BeatTheDeskSim(SceneAbstract):
                 tmp = v
                 tmp[0] = int(tmp[0] * 100)
                 tmp[1] = int(tmp[1] * 100)
-                tmp[2] = 17
+                tmp[2] = int(tmp[1] * 100)
                 new_objs.append({k: tmp})
 
         self.objects = new_objs

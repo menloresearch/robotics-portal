@@ -144,11 +144,11 @@ class BeatTheDeskEnv:
 
         return qpos
 
-    def path_to(self, start_qpos, qpos):
+    def path_to(self, start_qpos, qpos, num_waypoints):
         path = self.robot.plan_path(
             qpos_start=start_qpos,
             qpos_goal=qpos,
-            num_waypoints=150,
+            num_waypoints=num_waypoints,
             timeout=5,
             planner="RRTConnect",
         )
@@ -157,13 +157,13 @@ class BeatTheDeskEnv:
 
     def grasp(self, close):
         if close:
-            self.robot.control_dofs_force(
-                [-1.5, -1.5],
+            self.robot.control_dofs_position(
+                [0, 0],
                 self.finger_dofs_idx,
             )
         else:
-            self.robot.control_dofs_force(
-                [0.2, 0.2],
+            self.robot.control_dofs_position(
+                [0.05, 0.05],
                 self.finger_dofs_idx,
             )
 

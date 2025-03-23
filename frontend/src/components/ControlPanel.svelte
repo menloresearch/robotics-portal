@@ -115,6 +115,7 @@
         </div>
       </div>
 
+      {#if $selectedEnvironment === "arm-stack" || $selectedEnvironment === "arm-place"}
       <div class="space-y-4">
         <h3 class="text-sm font-medium text-gray-400">Object Coordinates</h3>
         <p class="text-xs text-gray-400 mb-2">
@@ -284,16 +285,22 @@
           </div>
         </div>
       </div>
+      {/if}
 
       <div class="space-y-2 mt-4">
         <h3 class="text-sm font-medium text-gray-400">Connection</h3>
         <div class="flex flex-col space-y-2">
           <button
             on:click={() => {
-              // Log the positions being sent
-              console.log("Sending object positions:", positions);
-              // Connect with positions data
-              connect(positions);
+              if ($selectedEnvironment === "arm-stack" || $selectedEnvironment === "arm-place") {
+                // Log the positions being sent
+                console.log("Sending object positions:", positions);
+                // Connect with positions data
+                connect(positions);
+              } else {
+                // Connect without positions data for other environments
+                connect();
+              }
             }}
             disabled={$isConnected || $isLoading}
             class="px-4 py-2 bg-gray-700 text-[#F95D03] font-medium border border-gray-600 rounded-md hover:bg-gray-600 hover:border-[#F95D03] disabled:text-gray-500 disabled:border-gray-700 disabled:bg-gray-800 disabled:cursor-not-allowed transition-colors duration-200 relative"

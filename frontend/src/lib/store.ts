@@ -9,10 +9,12 @@ export const isLoading = writable<boolean>(false);
 export const receivedFirstFrame = writable<boolean>(false);
 
 // Environment settings
-export const selectedEnvironment = writable<string>("arm-stack");
+export const selectedEnvironment = writable<string>("g1");
 export const environments = writable([
-  { id: "arm-stack", name: "Arm Stack" },
-  { id: "arm-place", name: "Arm Place" },
+  { id: "g1", name: "Unitree G1" },
+  { id: "go2", name: "Unitree Go2" },
+  { id: "arm-stack", name: "Arm Stack Cube" },
+  { id: "arm-place", name: "Arm Place Cube" },
 ]);
 
 // Telemetry data

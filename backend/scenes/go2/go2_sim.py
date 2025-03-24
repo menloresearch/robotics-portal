@@ -27,9 +27,7 @@ class Go2Sim(SceneAbstract):
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.load_policy(config)
 
-    def load_policy(
-        self, config
-    ):
+    def load_policy(self, config):
         # global policy_walk, policy_stand, policy_right, policy_left, env
         log_dir = "scenes/go2/checkpoints/go2-walking"
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
@@ -44,7 +42,7 @@ class Go2Sim(SceneAbstract):
             reward_cfg=reward_cfg,
             command_cfg=command_cfg,
             show_viewer=False,
-            scene_config=config
+            scene_config=config,
         )
 
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
@@ -242,7 +240,7 @@ class Go2Sim(SceneAbstract):
         actions_queue: asyncio.Queue,
         client_id: str,
         websocket: WebSocket,
-        last_activity: datetime
+        last_activity: datetime,
     ):
         try:
             while True:
@@ -276,7 +274,7 @@ class Go2Sim(SceneAbstract):
                         )
 
                         final_answer += chunk["choices"][0]["delta"].get("content", "")
-                        actions = parse_json_from_mixed_string(final_answer)
+                    actions = parse_json_from_mixed_string(final_answer)
                     print(final_answer)
                     if actions is None:
                         await send_personal_message(

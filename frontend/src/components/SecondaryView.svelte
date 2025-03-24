@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import {
     secondaryCanvas,
     secondaryCtx,
     isLoading,
     isConnected,
   } from "$lib/store";
-  import { handleZoom } from "$lib/interacts";
   import { browser } from "$app/environment";
   import { switchCamera } from "$lib/connection";
 
@@ -24,24 +23,10 @@
     context.fillStyle = "#1f2937";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Add zoom event listener
-    canvas.addEventListener("wheel", handleZoom, { passive: false });
-
     return () => {
       secondaryCanvas.set(null);
       secondaryCtx.set(null);
     };
-  });
-
-  onDestroy(() => {
-    if (!browser) return;
-
-    const canvas = document.getElementById(
-      "secondaryDisplay",
-    ) as HTMLCanvasElement;
-    if (canvas) {
-      canvas.removeEventListener("wheel", handleZoom);
-    }
   });
 
   // Camera selection

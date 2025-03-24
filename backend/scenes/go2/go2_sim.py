@@ -32,6 +32,9 @@ class Go2Sim(SceneAbstract):
         self.config = config
 
     def load_policy(self, config):
+        device = "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
         model_config = config.get("models", {}).get("rl", {})
         # global policy_walk, policy_stand, policy_right, policy_left, env
         log_dir = model_config.get(
@@ -56,7 +59,7 @@ class Go2Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_500.pt")
         runner.load(resume_path)
-        self.policy_walk = runner.get_inference_policy(device="cuda:0")
+        self.policy_walk = runner.get_inference_policy(device=device)
 
         log_dir = model_config.get("left", "scenes/go2/checkpoints/go2-left")
 
@@ -68,7 +71,7 @@ class Go2Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_500.pt")
         runner.load(resume_path)
-        self.policy_left = runner.get_inference_policy(device="cuda:0")
+        self.policy_left = runner.get_inference_policy(device=device)
 
         log_dir = model_config.get("right", "scenes/go2/checkpoints/go2-right")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
@@ -79,7 +82,7 @@ class Go2Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_500.pt")
         runner.load(resume_path)
-        self.policy_right = runner.get_inference_policy(device="cuda:0")
+        self.policy_right = runner.get_inference_policy(device=device)
 
         log_dir = model_config.get("stand", "scenes/go2/checkpoints/go2-stand")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
@@ -90,7 +93,7 @@ class Go2Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_500.pt")
         runner.load(resume_path)
-        self.policy_stand = runner.get_inference_policy(device="cuda:0")
+        self.policy_stand = runner.get_inference_policy(device=device)
         self.list_actions = [
             self.policy_right,
             self.policy_left,

@@ -26,6 +26,8 @@ class Go2Env:
         device="cuda",
         scene_config={}
     ):
+        if not torch.cuda.is_available():
+            device = "cpu"
         self.device = torch.device(device)
 
         self.num_envs = num_envs
@@ -57,7 +59,7 @@ class Go2Env:
                 camera_fov=40,
             ),
             vis_options=gs.options.VisOptions(
-                n_rendered_envs=1,
+                rendered_envs_idx=[0],
                 shadow=True,
                 ambient_light=[0.7, 0.7, 0.7],
             ),
@@ -491,7 +493,10 @@ class Go2Env:
                         pos=entity.get("pos", [0, 0, 0]),
                         fixed=entity.get("fixed", True),
                         scale=entity.get("scale", 1.0),
-                        euler=entity.get("euler", [0, 0, 0])
+                        euler=entity.get("euler", [0, 0, 0]),
+                        convexify=True,
+                        decimate=True,
+                        decompose_nonconvex=True
                     ),
                     vis_mode=entity.get("vis_mode", "collision"),
                 )

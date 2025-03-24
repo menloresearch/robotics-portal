@@ -15,6 +15,7 @@ from utils.utils import (
     send_openai_request,
     parse_json_from_mixed_string
 )
+import torch
 from utils.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_WAREHOUSE
 import logging
 from config import Config
@@ -30,6 +31,9 @@ class G1Sim(SceneAbstract):
         self.config = config
 
     def load_policy(self, config):
+        device = "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
         model_config = config.get("models", {}).get("rl", {})
 
         log_dir = model_config.get(
@@ -53,7 +57,7 @@ class G1Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_1000.pt")
         runner.load(resume_path)
-        self.policy_walk = runner.get_inference_policy(device="cuda:0")
+        self.policy_walk = runner.get_inference_policy(device=device)
 
         log_dir = model_config.get("left", "scenes/g1/checkpoints/g1-left")
 
@@ -65,7 +69,7 @@ class G1Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_1000.pt")
         runner.load(resume_path)
-        self.policy_left = runner.get_inference_policy(device="cuda:0")
+        self.policy_left = runner.get_inference_policy(device=device)
 
         log_dir = model_config.get("right", "scenes/g1/checkpoints/g1-right")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
@@ -76,7 +80,7 @@ class G1Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_1000.pt")
         runner.load(resume_path)
-        self.policy_right = runner.get_inference_policy(device="cuda:0")
+        self.policy_right = runner.get_inference_policy(device=device)
 
         log_dir = model_config.get("stand", "scenes/g1/checkpoints/g1-stand")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
@@ -87,7 +91,7 @@ class G1Sim(SceneAbstract):
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
         resume_path = os.path.join(log_dir, "model_1000.pt")
         runner.load(resume_path)
-        self.policy_stand = runner.get_inference_policy(device="cuda:0")
+        self.policy_stand = runner.get_inference_policy(device=device)
         self.list_actions = [self.policy_right,
                              self.policy_left, self.policy_stand, self.policy_walk]
         return

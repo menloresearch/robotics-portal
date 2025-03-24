@@ -28,6 +28,8 @@ class G1Env:
         device="cuda",
         scene_config={},
     ):
+        if not torch.cuda.is_available():
+            device = "cpu"
         self.device = torch.device(device)
 
         self.num_envs = num_envs
@@ -61,7 +63,7 @@ class G1Env:
                 camera_fov=40,
             ),
             vis_options=gs.options.VisOptions(
-                n_rendered_envs=1,
+                rendered_envs_idx=[0],
                 shadow=True,
                 ambient_light=[0.7, 0.7, 0.7],
             ),
@@ -713,6 +715,9 @@ class G1Env:
                         fixed=entity.get("fixed", True),
                         scale=entity.get("scale", 1.0),
                         euler=entity.get("euler", [0, 0, 0]),
+                        convexify=True,
+                        decimate=True,
+                        decompose_nonconvex=True
                     ),
                     vis_mode=entity.get("vis_mode", "collision"),
                 )

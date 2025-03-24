@@ -33,7 +33,7 @@
                         "name": "dragon",
                         "file": "meshes/dragon/dragon.obj",
                         "pos": [
-                            5,
+                            0,
                             5,
                             0
                         ],
@@ -43,24 +43,8 @@
                             90,
                             0,
                             45
-                        ]
-                    },
-                    {
-                        "type": "Mesh",
-                        "name": "boat",
-                        "file": "meshes/boat/boat.obj",
-                        "pos": [
-                            10,
-                            0,
-                            0
                         ],
-                        "fixed": true,
-                        "scale": 1,
-                        "euler": [
-                            90,
-                            0,
-                            0
-                        ]
+                        "vis_mode": "visual"
                     }
                 ]
             }
@@ -98,7 +82,7 @@
                         "name": "dragon",
                         "file": "meshes/dragon/dragon.obj",
                         "pos": [
-                            5,
+                            0,
                             5,
                             0
                         ],
@@ -108,24 +92,8 @@
                             90,
                             0,
                             45
-                        ]
-                    },
-                    {
-                        "type": "Mesh",
-                        "name": "boat",
-                        "file": "meshes/boat/boat.obj",
-                        "pos": [
-                            10,
-                            0,
-                            0
                         ],
-                        "fixed": true,
-                        "scale": 1,
-                        "euler": [
-                            90,
-                            0,
-                            0
-                        ]
+                        "vis_mode": "visual"
                     }
                 ]
             }

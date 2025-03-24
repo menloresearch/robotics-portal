@@ -13,9 +13,9 @@ from utils.utils import (
     encode_numpy_array,
     send_personal_message,
     send_openai_request,
-    parse_json_from_mixed_string,
-    SYSTEM_PROMPT
+    parse_json_from_mixed_string
 )
+from utils.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_WAREHOUSE
 from config import Config
 import logging
 
@@ -97,9 +97,10 @@ class Go2Sim(SceneAbstract):
         return
 
     def transform(self, action, amplitude):
-        if action == 0 or action == 1:  # right or left
-            amplitude = amplitude * 75 / 45
-
+        if action == 1 :  # left
+            amplitude = amplitude * 80 / 45
+        elif action == 0: # right 
+            amplitude = amplitude * 90 / 45
         elif action == 3:
             amplitude = amplitude * 120
         return amplitude
@@ -256,7 +257,8 @@ class Go2Sim(SceneAbstract):
         api_url = model_config.get("api_url", Config.openai_base_url)
         llm_model = model_config.get("model", Config.llm_model)
         api_key = model_config.get("api_key", Config.api_key)
-        system_prompt = model_config.get("system_prompt", SYSTEM_PROMPT)
+        system_prompt = model_config.get(
+            "system_prompt", SYSTEM_PROMPT_WAREHOUSE)
         try:
             while True:
                 # Wait for message from client

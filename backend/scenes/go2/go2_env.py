@@ -56,7 +56,11 @@ class Go2Env:
                 camera_lookat=(3, 0.0, 0.5),
                 camera_fov=40,
             ),
-            vis_options=gs.options.VisOptions(n_rendered_envs=1),
+            vis_options=gs.options.VisOptions(
+                n_rendered_envs=1,
+                shadow=True,
+                ambient_light=[0.7, 0.7, 0.7],
+            ),
             rigid_options=gs.options.RigidOptions(
                 dt=self.dt,
                 constraint_solver=gs.constraint_solver.Newton,
@@ -109,7 +113,24 @@ class Go2Env:
         )
 
         self.build_scene_from_config(scene_config)
-
+        self.warehouse = self.scene.add_entity(
+            gs.morphs.Mesh(file='assets/warehouse/warehouse.obj',
+                           fixed=True,
+                           euler=[90, 0, 0],
+                           pos=[0, 0, 0.0],
+                           collision=False,
+                           decimate=True,
+                           visualization=True,
+                           ),
+            vis_mode='visual',
+        )
+        # add bounding box
+        warehouse_bound_box = self.scene.add_entity(
+            gs.morphs.MJCF(file='assets/warehouse/bounding_box.xml',
+                           visualization=False,
+                           ),
+            vis_mode='visual',
+        )
         # build
         self.scene.build(n_envs=num_envs)
 
@@ -458,7 +479,8 @@ class Go2Env:
                         pos=entity.get("pos", [0, 0, 0]),
                         quat=entity.get("quat", [1, 0, 0, 0]),
                         fixed=entity.get("fixed", False)
-                    )
+                    ),
+                    vis_mode=entity.get("vis_mode", "collision"),
                 )
 
             elif entity_type == "Mesh":
@@ -470,7 +492,8 @@ class Go2Env:
                         fixed=entity.get("fixed", True),
                         scale=entity.get("scale", 1.0),
                         euler=entity.get("euler", [0, 0, 0])
-                    )
+                    ),
+                    vis_mode=entity.get("vis_mode", "collision"),
                 )
 
                 # Store named entities if needed

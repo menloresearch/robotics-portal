@@ -73,20 +73,57 @@ async def websocket_endpoint(websocket: WebSocket):
         data = await websocket.receive_text()
         message_data = json.loads(data)
 
-        objects = [
-            {"red-cube": [0.51, 0.43, 0.8]},
-            {"black-cube": [0.44, 0.58, 0.8]},
-            {"purple-cube": [0.74, 0.59, 0.8]},
-            {"green-cube": [0.65, 0.82, 0.8]},
+        objects_stack = [
+            {"red-cube": []},
+            {"black-cube": []},
+            {"green-cube": []},
+            {"purple-cube": []},
+        ]
+
+        objects_place = [
+            {"red-cube": []},
+            {"black-cube": []},
+            {"green-container": []},
+            # {"purple-container": [0.74, 0.59, 0]},
         ]
 
         if message_data.get("type") == "env":
             if message_data.get("env") == "go2":
-                scene = Go2Sim(config=message_data.get("config", default_config()["scenes"].get("go2",{})))
+                scene = Go2Sim(
+                    config=message_data.get(
+                        "config", default_config()["scenes"].get("go2", {})
+                    )
+                )
+
             elif message_data.get("env") == "g1":
-                scene = G1Sim(config=message_data.get("config", default_config()["scenes"].get("g1",{})))
-            elif message_data.get("env") == "arm":
-                scene = BeatTheDeskSim(objects)
+                scene = G1Sim(
+                    config=message_data.get(
+                        "config", default_config()["scenes"].get("g1", {})
+                    )
+                )
+
+            elif message_data.get("type") == "env":
+                if message_data.get("env") == "arm-stack":
+                    objects = message_data.get("positions")
+                    i = 0
+                    for v in objects.values():
+                        for key in objects_stack[i].keys():
+                            objects_stack[i][key] = v
+                        i += 1
+                    print(objects_stack)
+
+                    scene = BeatTheDeskSim(objects_stack)
+
+            elif message_data.get("env") == "arm-place":
+                objects = message_data.get("positions")
+                i = 0
+                for v in objects.values():
+                    for key in objects_place[i].keys():
+                        objects_place[i][key] = v
+                    i += 1
+                print(objects_place)
+
+                scene = BeatTheDeskSim(objects_place)
 
             break
 

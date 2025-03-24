@@ -46,11 +46,9 @@ class BeatTheDeskSim(SceneAbstract):
     ):
         try:
             zoom = 0
-            steps_set = [200, 30, 50, 30, 150, 30, 30]
-            step = 0
             macro = 0
 
-            cam_pos = self.env.cam_god.pos
+            cam_pos = self.env.cam.pos
             arm_pos = self.env.init_arm_dofs
             finger_pos = self.env.init_finger_dofs
             finger_grasp = False
@@ -130,15 +128,12 @@ class BeatTheDeskSim(SceneAbstract):
 
                     self.env.step()
 
-                    # lookat = np.array(self.env.cam.lookat)
-                    # self.env.cam.set_pose(
-                    #     pos=cam_pos + zoom * (cam_pos - lookat),
-                    # )
+                    lookat = np.array(self.env.cam.lookat)
+                    self.env.cam.set_pose(
+                        pos=cam_pos + zoom * (cam_pos - lookat),
+                    )
                     main_view, _, _, _ = self.env.cam.render()
 
-                    # self.env.cam_god.set_pose(
-                    #     pos=self.env.end_effector.get_pos(),
-                    # )
                     god_view, _, _, _ = self.env.cam_god.render()
 
                     main_view = main_view[:, :, ::-1]

@@ -22,9 +22,8 @@ export const frameCount = writable<number>(0);
 export const fps = writable<string>("0");
 export const latency = writable<string>("0");
 export const frameSize = writable<string>("0");
-export const fpsArray = writable<number[]>([]);
 export const latencyArray = writable<number[]>([]);
-export const lastFrameTime = writable<number>(0);
+export const framesInLastSecond = writable<number[]>([]);
 
 // Canvas references
 export const mainCanvas = writable<HTMLCanvasElement | null>(null);

@@ -14,7 +14,7 @@ import {
   frameSize,
 } from "./store";
 import { get } from "svelte/store";
-import { viewRender } from "./msgHandler";
+import { renderView } from "./renderView";
 
 export function connect(objectPositions?: any) {
   isLoading.set(true);
@@ -40,21 +40,17 @@ export function connect(objectPositions?: any) {
       type: "env",
       env: get(selectedEnvironment),
     };
-    
+
     // Add positions data if provided
     if (objectPositions) {
       // Convert object positions to array format with values divided by 100
       message.positions = {};
       for (const color in objectPositions) {
         const obj = objectPositions[color];
-        message.positions[color] = [
-          obj.x / 100,
-          obj.y / 100,
-          obj.z / 100
-        ];
+        message.positions[color] = [obj.x / 100, obj.y / 100, obj.z / 100];
       }
     }
-    
+
     webSocket.send(JSON.stringify(message));
   });
 
@@ -79,19 +75,7 @@ export function connect(objectPositions?: any) {
           isLoading.set(false);
         }
 
-        // Render the main view
-        if (get(mainCtx) && get(mainCanvas)) {
-          await viewRender(message.main_view, get(mainCtx)!, get(mainCanvas)!);
-        }
-
-        // Render the secondary view
-        if (get(secondaryCtx) && get(secondaryCanvas)) {
-          await viewRender(
-            message.god_view,
-            get(secondaryCtx)!,
-            get(secondaryCanvas)!,
-          );
-        }
+        await renderView(message.main_view, message.god_view);
       } else if (message.type === "reasoning" && message.message) {
         // Handle reasoning messages
         reasoningMessages.update((current) => current + message.message);
@@ -169,14 +153,17 @@ export function disconnect() {
   }
 }
 
-export function switchCamera(cameraIndex: number, view: 'main' | 'secondary' = 'main') {
+export function switchCamera(
+  cameraIndex: number,
+  view: "main" | "secondary" = "main",
+) {
   const currentSocket = get(socket);
   if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
     currentSocket.send(
       JSON.stringify({
         type: "camera_change",
         camera: cameraIndex,
-        view: view
+        view: view,
       }),
     );
   }

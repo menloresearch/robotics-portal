@@ -116,175 +116,175 @@
       </div>
 
       {#if $selectedEnvironment === "arm-stack" || $selectedEnvironment === "arm-place"}
-      <div class="space-y-4">
-        <h3 class="text-sm font-medium text-gray-400">Object Coordinates</h3>
-        <p class="text-xs text-gray-400 mb-2">
-          Set coordinates (X: 30-80, Y: 30-80, Z: 0-20)
-        </p>
+        <div class="space-y-4">
+          <h3 class="text-sm font-medium text-gray-400">Object Coordinates</h3>
+          <p class="text-xs text-gray-400 mb-2">
+            Set coordinates (X: 30-80, Y: 30-80, Z: 0-20)
+          </p>
 
-        <!-- Table-style coordinate inputs -->
-        <div class="w-full">
-          <!-- Table Header -->
-          <div class="grid grid-cols-4 gap-2 mb-2 text-center">
-            <div class="text-xs font-medium text-gray-500">Object</div>
-            <div class="text-xs font-medium text-gray-500">X</div>
-            <div class="text-xs font-medium text-gray-500">Y</div>
-            <div class="text-xs font-medium text-gray-500">Z</div>
-          </div>
+          <!-- Table-style coordinate inputs -->
+          <div class="w-full">
+            <!-- Table Header -->
+            <div class="grid grid-cols-4 gap-2 mb-2 text-center">
+              <div class="text-xs font-medium text-gray-500">Object</div>
+              <div class="text-xs font-medium text-gray-500">X</div>
+              <div class="text-xs font-medium text-gray-500">Y</div>
+              <div class="text-xs font-medium text-gray-500">Z</div>
+            </div>
 
-          <!-- Red Object Row -->
-          <div class="grid grid-cols-4 gap-2 mb-2 items-center">
-            <div class="text-sm font-medium text-red-400">Red</div>
-            <input
-              id="redX"
-              type="number"
-              bind:value={positions.red.x}
-              on:blur={(e) => validateX(e, "red")}
-              on:change={(e) => validateX(e, "red")}
-              min={ranges.x.min}
-              max={ranges.x.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="redY"
-              type="number"
-              bind:value={positions.red.y}
-              on:blur={(e) => validateY(e, "red")}
-              on:change={(e) => validateY(e, "red")}
-              min={ranges.y.min}
-              max={ranges.y.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="redZ"
-              type="number"
-              bind:value={positions.red.z}
-              on:blur={(e) => validateZ(e, "red")}
-              on:change={(e) => validateZ(e, "red")}
-              min={ranges.z.min}
-              max={ranges.z.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-          </div>
+            <!-- Red Object Row -->
+            <div class="grid grid-cols-4 gap-2 mb-2 items-center">
+              <div class="text-sm font-medium text-red-400">Red</div>
+              <input
+                id="redX"
+                type="number"
+                bind:value={positions.red.x}
+                on:blur={(e) => validateX(e, "red")}
+                on:change={(e) => validateX(e, "red")}
+                min={ranges.x.min}
+                max={ranges.x.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="redY"
+                type="number"
+                bind:value={positions.red.y}
+                on:blur={(e) => validateY(e, "red")}
+                on:change={(e) => validateY(e, "red")}
+                min={ranges.y.min}
+                max={ranges.y.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="redZ"
+                type="number"
+                bind:value={positions.red.z}
+                on:blur={(e) => validateZ(e, "red")}
+                on:change={(e) => validateZ(e, "red")}
+                min={ranges.z.min}
+                max={ranges.z.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
 
-          <!-- Black Object Row -->
-          <div class="grid grid-cols-4 gap-2 mb-2 items-center">
-            <div class="text-sm font-medium text-gray-400">Black</div>
-            <input
-              id="blackX"
-              type="number"
-              bind:value={positions.black.x}
-              on:blur={(e) => validateX(e, "black")}
-              on:change={(e) => validateX(e, "black")}
-              min={ranges.x.min}
-              max={ranges.x.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="blackY"
-              type="number"
-              bind:value={positions.black.y}
-              on:blur={(e) => validateY(e, "black")}
-              on:change={(e) => validateY(e, "black")}
-              min={ranges.y.min}
-              max={ranges.y.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="blackZ"
-              type="number"
-              bind:value={positions.black.z}
-              on:blur={(e) => validateZ(e, "black")}
-              on:change={(e) => validateZ(e, "black")}
-              min={ranges.z.min}
-              max={ranges.z.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-          </div>
+            <!-- Black Object Row -->
+            <div class="grid grid-cols-4 gap-2 mb-2 items-center">
+              <div class="text-sm font-medium text-gray-400">Black</div>
+              <input
+                id="blackX"
+                type="number"
+                bind:value={positions.black.x}
+                on:blur={(e) => validateX(e, "black")}
+                on:change={(e) => validateX(e, "black")}
+                min={ranges.x.min}
+                max={ranges.x.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="blackY"
+                type="number"
+                bind:value={positions.black.y}
+                on:blur={(e) => validateY(e, "black")}
+                on:change={(e) => validateY(e, "black")}
+                min={ranges.y.min}
+                max={ranges.y.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="blackZ"
+                type="number"
+                bind:value={positions.black.z}
+                on:blur={(e) => validateZ(e, "black")}
+                on:change={(e) => validateZ(e, "black")}
+                min={ranges.z.min}
+                max={ranges.z.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
 
-          <!-- Green Object Row -->
-          <div class="grid grid-cols-4 gap-2 mb-2 items-center">
-            <div class="text-sm font-medium text-green-400">Green</div>
-            <input
-              id="greenX"
-              type="number"
-              bind:value={positions.green.x}
-              on:blur={(e) => validateX(e, "green")}
-              on:change={(e) => validateX(e, "green")}
-              min={ranges.x.min}
-              max={ranges.x.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="greenY"
-              type="number"
-              bind:value={positions.green.y}
-              on:blur={(e) => validateY(e, "green")}
-              on:change={(e) => validateY(e, "green")}
-              min={ranges.y.min}
-              max={ranges.y.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="greenZ"
-              type="number"
-              bind:value={positions.green.z}
-              on:blur={(e) => validateZ(e, "green")}
-              on:change={(e) => validateZ(e, "green")}
-              min={ranges.z.min}
-              max={ranges.z.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-          </div>
+            <!-- Green Object Row -->
+            <div class="grid grid-cols-4 gap-2 mb-2 items-center">
+              <div class="text-sm font-medium text-green-400">Green</div>
+              <input
+                id="greenX"
+                type="number"
+                bind:value={positions.green.x}
+                on:blur={(e) => validateX(e, "green")}
+                on:change={(e) => validateX(e, "green")}
+                min={ranges.x.min}
+                max={ranges.x.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="greenY"
+                type="number"
+                bind:value={positions.green.y}
+                on:blur={(e) => validateY(e, "green")}
+                on:change={(e) => validateY(e, "green")}
+                min={ranges.y.min}
+                max={ranges.y.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="greenZ"
+                type="number"
+                bind:value={positions.green.z}
+                on:blur={(e) => validateZ(e, "green")}
+                on:change={(e) => validateZ(e, "green")}
+                min={ranges.z.min}
+                max={ranges.z.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
 
-          <!-- Purple Object Row -->
-          <div class="grid grid-cols-4 gap-2 mb-2 items-center">
-            <div class="text-sm font-medium text-purple-400">Purple</div>
-            <input
-              id="purpleX"
-              type="number"
-              bind:value={positions.purple.x}
-              on:blur={(e) => validateX(e, "purple")}
-              on:change={(e) => validateX(e, "purple")}
-              min={ranges.x.min}
-              max={ranges.x.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="purpleY"
-              type="number"
-              bind:value={positions.purple.y}
-              on:blur={(e) => validateY(e, "purple")}
-              on:change={(e) => validateY(e, "purple")}
-              min={ranges.y.min}
-              max={ranges.y.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
-            <input
-              id="purpleZ"
-              type="number"
-              bind:value={positions.purple.z}
-              on:blur={(e) => validateZ(e, "purple")}
-              on:change={(e) => validateZ(e, "purple")}
-              min={ranges.z.min}
-              max={ranges.z.max}
-              disabled={$isConnected}
-              class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-            />
+            <!-- Purple Object Row -->
+            <div class="grid grid-cols-4 gap-2 mb-2 items-center">
+              <div class="text-sm font-medium text-purple-400">Purple</div>
+              <input
+                id="purpleX"
+                type="number"
+                bind:value={positions.purple.x}
+                on:blur={(e) => validateX(e, "purple")}
+                on:change={(e) => validateX(e, "purple")}
+                min={ranges.x.min}
+                max={ranges.x.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="purpleY"
+                type="number"
+                bind:value={positions.purple.y}
+                on:blur={(e) => validateY(e, "purple")}
+                on:change={(e) => validateY(e, "purple")}
+                min={ranges.y.min}
+                max={ranges.y.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+              <input
+                id="purpleZ"
+                type="number"
+                bind:value={positions.purple.z}
+                on:blur={(e) => validateZ(e, "purple")}
+                on:change={(e) => validateZ(e, "purple")}
+                min={ranges.z.min}
+                max={ranges.z.max}
+                disabled={$isConnected}
+                class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
+              />
+            </div>
           </div>
         </div>
-      </div>
       {/if}
 
       <div class="space-y-2 mt-4">
@@ -292,9 +292,12 @@
         <div class="flex flex-col space-y-2">
           <button
             on:click={() => {
-              if ($selectedEnvironment === "arm-stack" || $selectedEnvironment === "arm-place") {
+              if (
+                $selectedEnvironment === "arm-stack" ||
+                $selectedEnvironment === "arm-place"
+              ) {
                 // Log the positions being sent
-                console.log("Sending object positions:", positions);
+                console.info("Sending object positions:", positions);
                 // Connect with positions data
                 connect(positions);
               } else {

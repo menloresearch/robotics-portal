@@ -102,17 +102,16 @@ async def websocket_endpoint(websocket: WebSocket):
                     )
                 )
 
-            elif message_data.get("type") == "env":
-                if message_data.get("env") == "arm-stack":
-                    objects = message_data.get("positions")
-                    i = 0
-                    for v in objects.values():
-                        for key in objects_stack[i].keys():
-                            objects_stack[i][key] = v
-                        i += 1
-                    print(objects_stack)
+            elif message_data.get("env") == "arm-stack":
+                objects = message_data.get("positions")
+                i = 0
+                for v in objects.values():
+                    for key in objects_stack[i].keys():
+                        objects_stack[i][key] = v
+                    i += 1
+                print(objects_stack)
 
-                    scene = BeatTheDeskSim(objects_stack)
+                scene = BeatTheDeskSim(objects_stack)
 
             elif message_data.get("env") == "arm-place":
                 objects = message_data.get("positions")

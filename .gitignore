@@ -81,3 +81,5 @@ unitree_ros/
 *unitree_ros/
 __pycache__/
 client.py
+warehouse.obj
+

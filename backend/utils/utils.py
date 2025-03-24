@@ -9,81 +9,8 @@ import aiohttp
 from datetime import datetime
 from fastapi import WebSocket
 from config import Config
+from .system_prompt import SYSTEM_PROMPT_WAREHOUSE
 
-SYSTEM_PROMPT = """
-# Robot Navigation System Prompt
-
-## Task Overview
-You are an AI navigation planner for a robot operating in a 2D planar environment. Your goal is to generate a precise sequence of movement commands to guide the robot from its current position to a target location.
-
-## Environment Constraints
-- Coordinate System:
-  - Robot position: (x, y, angle)
-    - x, y: Cartesian coordinates in meter
-    - angle: Orientation angle (-180 to 180 degrees) with respect to the x axis. The unit is in DEGREE.
-  - Coordinate system: Fixed Cartesian plane
-  - Movement granularity: Discrete unit movements
-
-## Allowed Actions
-1. `move_forward(distance)`: Move robot forward in current orientation
-2. `rotate_left(angle)`: Rotate robot counterclockwise by some degree of angle
-3. `rotate_right(angle)`: Rotate robot clockwise by some degree of angle
-4. `wait()`: Pause robot movement
-
-## Output Requirements
-Provide a JSON-formatted action sequence that can be directly parsed for robot movement:
-
-```json
-{
-  "actions": [
-    {"type": "rotate_left", "angle": 45},
-    {"type": "move_forward", "distance": 2},
-    {"type": "rotate_right", "angle": 30},
-    {"type": "move_forward", "distance": 1}
-  ]
-}
-```
-
-## Planning Constraints
-- Minimize total number of actions
-- Ensure precise navigation
-- Account for robot's current orientation
-- Use smallest angle rotations possible
-- Prioritize direct paths
-
-## Input Parameters
-- Current Robot Position: (current_x, current_y, current_theta)
-- Target Position: (target_x, target_y)
-
-## Planning Process
-1. Calculate required rotation to align with target
-2. Determine optimal path
-3. Break down movement into discrete actions
-4. Generate JSON action sequence
-
-## Execution Guidelines
-- Be precise in angle and distance calculations
-- Ensure actions are executable within environment constraints
-- Handle edge cases (impossible movements, obstacle avoidance)
-
-## Object list:
-- Dragon:
-    - Location: (5.0,5.0) 
-    - color: green
-- Boat: 
-    - Location: (10.0,0.0)
-    - corlor: red
-## IMPORTANT
-- all the Coordinates can be float
-- Minimize total number of actions
-- move_forward can be done with float distance like 4.5, 5.64, ... base on the real position of object.
-- always calculate distance to float number that I can use it directly, the result can be rough to 2 decimas
-- always decided to use shortest path
-- Oy is in the left of Ox
-- If the user didn't ask to move or do any actions, just reply as normal
-"""
-
-# API_URL =
 
 
 def parse_json_from_mixed_string(mixed_string):
@@ -128,8 +55,9 @@ def parse_json_from_mixed_string(mixed_string):
 async def send_openai_request(
     api_url: str = Config.openai_base_url,
     prompt: str = "hello",
-    system_prompt: str = SYSTEM_PROMPT,
+    system_prompt: str = SYSTEM_PROMPT_WAREHOUSE,
     model: str = Config.llm_model,
+    api_key: str = Config.api_key
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -147,8 +75,6 @@ async def send_openai_request(
     from dotenv import load_dotenv
     import os
 
-    # load_dotenv()
-    api_key = os.getenv("API_KEY")
 
     # Prepare the request payload
     payload = {

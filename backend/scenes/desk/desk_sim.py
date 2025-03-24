@@ -194,6 +194,7 @@ class BeatTheDeskSim(SceneAbstract):
                     message_data = json.loads(data)
                 except json.JSONDecodeError:
                     message_data = {"type": "message", "content": data}
+                last_activity = datetime.now()
 
                 if message_data.get("type") == "command":
                     try:

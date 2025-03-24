@@ -39,7 +39,8 @@ class G1Env:
         # there is a 1 step latency on real robot, but I'm doing Sim2Sim
         self.simulate_action_latency = False
         self.dt = 0.02  # Control Frequency is 50Hz on Real Robot
-        self.max_episode_length = math.ceil(env_cfg["episode_length_s"] / self.dt)
+        self.max_episode_length = math.ceil(
+            env_cfg["episode_length_s"] / self.dt)
 
         self.env_cfg = env_cfg
         self.obs_cfg = obs_cfg
@@ -59,7 +60,11 @@ class G1Env:
                 camera_lookat=(0.0, 0.0, 0.5),
                 camera_fov=40,
             ),
-            vis_options=gs.options.VisOptions(n_rendered_envs=1),
+            vis_options=gs.options.VisOptions(
+                n_rendered_envs=1,
+                shadow=True,
+                ambient_light=[0.7, 0.7, 0.7],
+            ),
             rigid_options=gs.options.RigidOptions(
                 dt=self.dt,
                 constraint_solver=gs.constraint_solver.Newton,
@@ -119,6 +124,24 @@ class G1Env:
         )
 
         self.build_scene_from_config(scene_config)
+        self.warehouse = self.scene.add_entity(
+            gs.morphs.Mesh(file='assets/warehouse/warehouse.obj',
+                           fixed=True,
+                           euler=[90, 0, 0],
+                           pos=[0, 0, 0.0],
+                           collision=False,
+                           decimate=True,
+                           visualization=True,
+                           ),
+            vis_mode='visual',
+        )
+        # add bounding box
+        warehouse_bound_box = self.scene.add_entity(
+            gs.morphs.MJCF(file='assets/warehouse/bounding_box.xml',
+                           visualization=False,
+                           ),
+            vis_mode='visual',
+        )
 
         # build
         self.scene.build(n_envs=num_envs)
@@ -130,8 +153,10 @@ class G1Env:
         ]
 
         # PD control parameters
-        self.robot.set_dofs_kp([self.env_cfg["kp"]] * self.num_actions, self.motor_dofs)
-        self.robot.set_dofs_kv([self.env_cfg["kd"]] * self.num_actions, self.motor_dofs)
+        self.robot.set_dofs_kp([self.env_cfg["kp"]] *
+                               self.num_actions, self.motor_dofs)
+        self.robot.set_dofs_kv([self.env_cfg["kd"]] *
+                               self.num_actions, self.motor_dofs)
 
         # prepare reward functions and multiply reward scales by dt
         self.reward_functions, self.episode_sums = dict(), dict()
@@ -205,7 +230,8 @@ class G1Env:
         # Modified Physics
         self.contact_forces = self.robot.get_links_net_contact_force()
         self.left_foot_link = self.robot.get_link(name="left_ankle_roll_link")
-        self.right_foot_link = self.robot.get_link(name="right_ankle_roll_link")
+        self.right_foot_link = self.robot.get_link(
+            name="right_ankle_roll_link")
         self.left_foot_id_local = self.left_foot_link.idx_local
         self.right_foot_id_local = self.right_foot_link.idx_local
         self.feet_indices = [self.left_foot_id_local, self.right_foot_id_local]
@@ -260,7 +286,8 @@ class G1Env:
 
     def step(self, actions, x=0, y=0, angle=0):
         self.actions = torch.clip(
-            actions, -self.env_cfg["clip_actions"], self.env_cfg["clip_actions"]
+            actions, -
+            self.env_cfg["clip_actions"], self.env_cfg["clip_actions"]
         )
         exec_actions = (
             self.last_actions if self.simulate_action_latency else self.actions
@@ -277,7 +304,8 @@ class G1Env:
         # For unknown reasons, it gets NaN values in self.robot.get_*() sometimes
         if torch.isnan(self.base_pos).any():
             nan_envs = (
-                torch.isnan(self.base_pos).any(dim=1).nonzero(as_tuple=False).flatten()
+                torch.isnan(self.base_pos).any(
+                    dim=1).nonzero(as_tuple=False).flatten()
             )
             self.reset_idx(nan_envs)
         self.base_quat[:] = self.robot.get_quat()
@@ -289,9 +317,12 @@ class G1Env:
         )
 
         inv_base_quat = inv_quat(self.base_quat)
-        self.base_lin_vel[:] = transform_by_quat(self.robot.get_vel(), inv_base_quat)
-        self.base_ang_vel[:] = transform_by_quat(self.robot.get_ang(), inv_base_quat)
-        self.projected_gravity = transform_by_quat(self.global_gravity, inv_base_quat)
+        self.base_lin_vel[:] = transform_by_quat(
+            self.robot.get_vel(), inv_base_quat)
+        self.base_ang_vel[:] = transform_by_quat(
+            self.robot.get_ang(), inv_base_quat)
+        self.projected_gravity = transform_by_quat(
+            self.global_gravity, inv_base_quat)
         self.dof_pos[:] = self.robot.get_dofs_position(self.motor_dofs)
         self.dof_vel[:] = self.robot.get_dofs_velocity(self.motor_dofs)
 
@@ -333,15 +364,15 @@ class G1Env:
         )
 
         # resample commands
-        # envs_idx = (
-        #     (
-        #         self.episode_length_buf
-        #         % int(self.env_cfg["resampling_time_s"] / self.dt)
-        #         == 0
-        #     )
-        #     .nonzero(as_tuple=False)
-        #     .flatten()
-        # )
+        envs_idx = (
+            (
+                self.episode_length_buf
+                % int(self.env_cfg["resampling_time_s"] / self.dt)
+                == 0
+            )
+            .nonzero(as_tuple=False)
+            .flatten()
+        )
         # self._resample_commands(envs_idx)
 
         # check termination and reset
@@ -377,7 +408,8 @@ class G1Env:
         # Modified Physics
         self.contact_forces = self.robot.get_links_net_contact_force()
         self.left_foot_link = self.robot.get_link(name="left_ankle_roll_link")
-        self.right_foot_link = self.robot.get_link(name="right_ankle_roll_link")
+        self.right_foot_link = self.robot.get_link(
+            name="right_ankle_roll_link")
         self.left_foot_id_local = self.left_foot_link.idx_local
         self.right_foot_id_local = self.right_foot_link.idx_local
         self.feet_indices = [self.left_foot_id_local, self.right_foot_id_local]
@@ -455,7 +487,8 @@ class G1Env:
         if self.counter % int(self.domain_rand_cfg["push_interval_s"] / self.dt) == 0:
             added_mass_range = self.domain_rand_cfg["added_mass_range"]
             added_mass = float(
-                torch.rand(1).item() * (added_mass_range[1] - added_mass_range[0])
+                torch.rand(1).item() *
+                (added_mass_range[1] - added_mass_range[0])
                 + added_mass_range[0]
             )
             new_mass = max(self.pelvis_mass + added_mass, 0.1)
@@ -491,7 +524,8 @@ class G1Env:
         current_euler = self.base_euler
         new_euler = current_euler[push_env_ids] + d_euler[push_env_ids]
         new_quat = xyz_to_quat(new_euler)
-        self.robot.set_quat(new_quat, zero_velocity=False, envs_idx=push_env_ids)
+        self.robot.set_quat(new_quat, zero_velocity=False,
+                            envs_idx=push_env_ids)
 
     def get_observations(self):
         return self.obs_buf
@@ -564,7 +598,8 @@ class G1Env:
 
     def _reward_tracking_ang_vel(self):
         # Tracking of angular velocity commands (yaw)
-        ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
+        ang_vel_error = torch.square(
+            self.commands[:, 2] - self.base_ang_vel[:, 2])
         return torch.exp(-ang_vel_error / self.reward_cfg["tracking_sigma"])
 
     def _reward_lin_vel_z(self):
@@ -605,7 +640,8 @@ class G1Env:
     def _reward_contact_no_vel(self):
         # Function borrowed from https://github.com/unitreerobotics/unitree_rl_gym,
         # which is originally under BSD-3 License
-        contact = torch.norm(self.contact_forces[:, self.feet_indices, :3], dim=2) > 1.0
+        contact = torch.norm(
+            self.contact_forces[:, self.feet_indices, :3], dim=2) > 1.0
         contact_feet_vel = self.feet_vel * contact.unsqueeze(-1)
         penalize = torch.square(contact_feet_vel[:, :, :3])
         return torch.sum(penalize, dim=(1, 2))
@@ -613,9 +649,11 @@ class G1Env:
     def _reward_feet_swing_height(self):
         # Function borrowed from https://github.com/unitreerobotics/unitree_rl_gym,
         # which is originally under BSD-3 License
-        contact = torch.norm(self.contact_forces[:, self.feet_indices, :3], dim=2) > 1.0
+        contact = torch.norm(
+            self.contact_forces[:, self.feet_indices, :3], dim=2) > 1.0
         pos_error = (
-            torch.square(self.feet_pos[:, :, 2] - self.reward_cfg["feet_height_target"])
+            torch.square(self.feet_pos[:, :, 2] -
+                         self.reward_cfg["feet_height_target"])
             * ~contact
         )
         return torch.sum(pos_error, dim=(1))
@@ -663,7 +701,7 @@ class G1Env:
                         pos=entity.get("pos", [0, 0, 0]),
                         quat=entity.get("quat", [1, 0, 0, 0]),
                         fixed=entity.get("fixed", False),
-                    )
+                    ), vis_mode=entity.get("vis_mode", "collision"),
                 )
 
             elif entity_type == "Mesh":
@@ -675,7 +713,8 @@ class G1Env:
                         fixed=entity.get("fixed", True),
                         scale=entity.get("scale", 1.0),
                         euler=entity.get("euler", [0, 0, 0]),
-                    )
+                    ),
+                    vis_mode=entity.get("vis_mode", "collision"),
                 )
 
                 # Store named entities if needed

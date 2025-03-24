@@ -13,8 +13,11 @@ from utils.utils import (
     encode_numpy_array,
     send_personal_message,
     send_openai_request,
-    parse_json_from_mixed_string,
+    parse_json_from_mixed_string
 )
+from utils.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_WAREHOUSE
+from config import Config
+
 import logging
 
 logging.basicConfig(level=logging.ERROR)
@@ -26,12 +29,16 @@ class Go2Sim(SceneAbstract):
         super().__init__()
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.load_policy(config)
+        self.config = config
 
     def load_policy(self, config):
+        model_config = config.get("models", {}).get("rl", {})
         # global policy_walk, policy_stand, policy_right, policy_left, env
-        log_dir = "scenes/go2/checkpoints/go2-walking"
+        log_dir = model_config.get(
+            "walking", "scenes/go2/checkpoints/go2-walking")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("scenes/go2/checkpoints/go2-walking/cfgs.pkl", "rb")
+            open(log_dir+"/cfgs.pkl", "rb")
+
         )
         reward_cfg["reward_scales"] = {}
 
@@ -42,7 +49,8 @@ class Go2Sim(SceneAbstract):
             reward_cfg=reward_cfg,
             command_cfg=command_cfg,
             show_viewer=False,
-            scene_config=config,
+            scene_config=config
+
         )
 
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
@@ -50,10 +58,10 @@ class Go2Sim(SceneAbstract):
         runner.load(resume_path)
         self.policy_walk = runner.get_inference_policy(device="cuda:0")
 
-        log_dir = "scenes/go2/checkpoints/go2-left"
+        log_dir = model_config.get("left", "scenes/go2/checkpoints/go2-left")
 
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("scenes/go2/checkpoints/go2-left/cfgs.pkl", "rb")
+            open(log_dir+"/cfgs.pkl", "rb")
         )
         reward_cfg["reward_scales"] = {}
 
@@ -62,9 +70,9 @@ class Go2Sim(SceneAbstract):
         runner.load(resume_path)
         self.policy_left = runner.get_inference_policy(device="cuda:0")
 
-        log_dir = "scenes/go2/checkpoints/go2-right"
+        log_dir = model_config.get("right", "scenes/go2/checkpoints/go2-right")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("scenes/go2/checkpoints/go2-right/cfgs.pkl", "rb")
+            open(log_dir+"/cfgs.pkl", "rb")
         )
         reward_cfg["reward_scales"] = {}
 
@@ -73,9 +81,9 @@ class Go2Sim(SceneAbstract):
         runner.load(resume_path)
         self.policy_right = runner.get_inference_policy(device="cuda:0")
 
-        log_dir = "scenes/go2/checkpoints/go2-stand"
+        log_dir = model_config.get("stand", "scenes/go2/checkpoints/go2-stand")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
-            open("scenes/go2/checkpoints/go2-stand/cfgs.pkl", "rb")
+            open(log_dir+"/cfgs.pkl", "rb")
         )
         reward_cfg["reward_scales"] = {}
 
@@ -92,8 +100,10 @@ class Go2Sim(SceneAbstract):
         return
 
     def transform(self, action, amplitude):
-        if action == 0 or action == 1:  # right or left
-            amplitude = amplitude * 75 / 45
+        if action == 1 :  # left
+            amplitude = amplitude * 80 / 45
+        elif action == 0: # right 
+            amplitude = amplitude * 90 / 45
 
         elif action == 3:
             amplitude = amplitude * 120
@@ -160,12 +170,14 @@ class Go2Sim(SceneAbstract):
                     elif message.get("type") == "camera_change":
                         main = message.get("camera")
 
-                    if (not actions_queue.empty()) and stop:
+                    if (not actions_queue.empty()) and stop == True:
                         action, amptitude = await actions_queue.get()
-                        logger.info("action: " + str(action) + ", am:" + str(amptitude))
+                        logger.info("action: " + str(action) +
+                                    ", am:" + str(amptitude))
                         action = actions_map[action]
                         steps = self.transform(action, amptitude)
-                        logger.info("action: " + str(action) + ", steps:" + str(steps))
+                        logger.info("action: " + str(action) +
+                                    ", steps:" + str(steps))
                         step = 0
                         stop = False
 
@@ -190,10 +202,12 @@ class Go2Sim(SceneAbstract):
                         with torch.no_grad():
                             if stop:
                                 actions = self.list_actions[2](obs)  # stand
-                                obs, _, rews, dones, infos = self.env.step(actions)
+                                obs, _, rews, dones, infos = self.env.step(
+                                    actions)
                             else:
                                 actions = self.list_actions[action](obs)
-                                obs, _, rews, dones, infos = self.env.step(actions)
+                                obs, _, rews, dones, infos = self.env.step(
+                                    actions)
                         processed_message = {
                             "type": "streaming_view",
                             "main_view": encode_numpy_array(main_view),
@@ -230,7 +244,9 @@ class Go2Sim(SceneAbstract):
             logger.error(f"Server processor for client {client_id} cancelled")
             return
         except Exception as e:
-            logger.error(f"Server processor error for client {client_id}: {str(e)}")
+            logger.error(
+                f"Server processor error for client {client_id}: {str(e)}")
+
             return
 
     async def client_handler(
@@ -241,6 +257,13 @@ class Go2Sim(SceneAbstract):
         websocket: WebSocket,
         last_activity: datetime,
     ):
+        model_config = self.config.get("models", {}).get("llm", {})
+        api_url = model_config.get("api_url", Config.openai_base_url)
+        llm_model = model_config.get("model", Config.llm_model)
+        api_key = model_config.get("api_key", Config.api_key)
+        system_prompt = model_config.get(
+            "system_prompt", SYSTEM_PROMPT_WAREHOUSE)
+
         try:
             while True:
                 # Wait for message from client
@@ -258,7 +281,8 @@ class Go2Sim(SceneAbstract):
                     content = message_data.get("content", "")
                     robot_position = str(self.env.position)
                     content += ". Robot is at the position " + robot_position
-                    async for chunk in send_openai_request(prompt=content):
+                    async for chunk in send_openai_request(api_url=api_url, api_key=api_key, system_prompt=system_prompt, prompt=content, model=llm_model):
+
                         await send_personal_message(
                             websocket,
                             json.dumps(
@@ -271,9 +295,11 @@ class Go2Sim(SceneAbstract):
                             ),
                             client_id,
                         )
-
-                        final_answer += chunk["choices"][0]["delta"].get("content", "")
+                        final_answer += chunk["choices"][0]["delta"].get(
+                            "content", "")
                     actions = parse_json_from_mixed_string(final_answer)
+                    print(final_answer)
+
                     if actions is None:
                         await send_personal_message(
                             websocket,
@@ -291,7 +317,9 @@ class Go2Sim(SceneAbstract):
                             await actions_queue.put(
                                 (
                                     action["type"],
-                                    action.get("angle", action.get("distance", 0)),
+                                    action.get(
+                                        "angle", action.get("distance", 0)),
+
                                 )
                             )
 
@@ -308,6 +336,8 @@ class Go2Sim(SceneAbstract):
 
                 else:
                     await message_queue.put(message_data)
+                last_activity = datetime.now()
+
 
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected")
@@ -315,5 +345,7 @@ class Go2Sim(SceneAbstract):
         except asyncio.CancelledError:
             logger.info(f"Client handler for client {client_id} cancelled")
         except Exception as e:
-            logger.error(f"Client handler error for client {client_id}: {str(e)}")
+            logger.error(
+                f"Client handler error for client {client_id}: {str(e)}")
+
             raise

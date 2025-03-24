@@ -1,6 +1,18 @@
 {
     "scenes": {
         "go2": {
+            "models": {
+                "rl": {
+                    "walking": "scenes/go2/checkpoints/go2-walking",
+                    "left": "scenes/go2/checkpoints/go2-left",
+                    "right": "scenes/go2/checkpoints/go2-right",
+                    "stand": "scenes/go2/checkpoints/go2-stand"
+                },
+                "llm": {
+                    "api_url": "https://api.openai.com/v1/chat/completions",
+                    "model": "gpt-4o"
+                }
+            },
             "robot": {
                 "base_init_pos": [
                     1,
@@ -21,7 +33,7 @@
                         "name": "dragon",
                         "file": "meshes/dragon/dragon.obj",
                         "pos": [
-                            5,
+                            0,
                             5,
                             0
                         ],
@@ -31,29 +43,25 @@
                             90,
                             0,
                             45
-                        ]
-                    },
-                    {
-                        "type": "Mesh",
-                        "name": "boat",
-                        "file": "meshes/boat/boat.obj",
-                        "pos": [
-                            10,
-                            0,
-                            0
                         ],
-                        "fixed": true,
-                        "scale": 1,
-                        "euler": [
-                            90,
-                            0,
-                            0
-                        ]
+                        "vis_mode": "visual"
                     }
                 ]
             }
         },
         "g1": {
+            "models": {
+                "rl": {
+                    "walking": "scenes/g1/checkpoints/g1-walking",
+                    "left": "scenes/g1/checkpoints/g1-left",
+                    "right": "scenes/g1/checkpoints/g1-right",
+                    "stand": "scenes/g1/checkpoints/g1-stand"
+                },
+                "llm": {
+                    "api_url": "https://api.openai.com/v1/chat/completions",
+                    "model": "gpt-4o"
+                }
+            },
             "robot": {
                 "base_init_pos": [
                     1,
@@ -74,7 +82,7 @@
                         "name": "dragon",
                         "file": "meshes/dragon/dragon.obj",
                         "pos": [
-                            5,
+                            0,
                             5,
                             0
                         ],
@@ -84,24 +92,8 @@
                             90,
                             0,
                             45
-                        ]
-                    },
-                    {
-                        "type": "Mesh",
-                        "name": "boat",
-                        "file": "meshes/boat/boat.obj",
-                        "pos": [
-                            10,
-                            0,
-                            0
                         ],
-                        "fixed": true,
-                        "scale": 1,
-                        "euler": [
-                            90,
-                            0,
-                            0
-                        ]
+                        "vis_mode": "visual"
                     }
                 ]
             }

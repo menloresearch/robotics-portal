@@ -1,6 +1,18 @@
 {
     "scenes": {
         "go2": {
+            "models": {
+                "rl": {
+                    "walking": "scenes/go2/checkpoints/go2-walking",
+                    "left": "scenes/go2/checkpoints/go2-left",
+                    "right": "scenes/go2/checkpoints/go2-right",
+                    "stand": "scenes/go2/checkpoints/go2-stand"
+                },
+                "llm": {
+                    "api_url": "https://api.openai.com/v1/chat/completions",
+                    "model": "gpt-4o"
+                }
+            },
             "robot": {
                 "base_init_pos": [
                     1,
@@ -54,6 +66,18 @@
             }
         },
         "g1": {
+            "models": {
+                "rl": {
+                    "walking": "scenes/g1/checkpoints/g1-walking",
+                    "left": "scenes/g1/checkpoints/g1-left",
+                    "right": "scenes/g1/checkpoints/g1-right",
+                    "stand": "scenes/g1/checkpoints/g1-stand"
+                },
+                "llm": {
+                    "api_url": "https://api.openai.com/v1/chat/completions",
+                    "model": "gpt-4o"
+                }
+            },
             "robot": {
                 "base_init_pos": [
                     1,

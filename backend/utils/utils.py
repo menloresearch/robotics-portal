@@ -130,6 +130,7 @@ async def send_openai_request(
     prompt: str = "hello",
     system_prompt: str = SYSTEM_PROMPT,
     model: str = Config.llm_model,
+    api_key: str = Config.api_key
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -148,7 +149,6 @@ async def send_openai_request(
     import os
 
     # load_dotenv()
-    api_key = os.getenv("API_KEY")
 
     # Prepare the request payload
     payload = {

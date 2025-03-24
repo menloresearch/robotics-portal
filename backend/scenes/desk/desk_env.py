@@ -190,10 +190,6 @@ class BeatTheDeskEnv:
 
                 if obj == "container":
                     obj_ = self.scene.add_entity(
-                        # gs.morphs.Mesh(
-                        #     file="scenes/desk/furniture/tray_small.stl",
-                        #     pos=value,
-                        # ),
                         gs.morphs.Box(
                             size=(0.2, 0.15, 0.02),
                             pos=value,

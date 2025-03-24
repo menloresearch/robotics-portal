@@ -84,7 +84,6 @@ async def websocket_endpoint(websocket: WebSocket):
             {"red-cube": []},
             {"black-cube": []},
             {"green-container": []},
-            # {"purple-container": [0.74, 0.59, 0]},
         ]
 
         if message_data.get("type") == "env":
@@ -106,9 +105,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 objects = message_data.get("positions")
                 i = 0
                 for v in objects.values():
-                    for key in objects_stack[i].keys():
-                        objects_stack[i][key] = v
-                    i += 1
+                    if i < len(objects_stack):
+                        for key in objects_stack[i].keys():
+                            objects_stack[i][key] = v
+                        i += 1
                 print(objects_stack)
 
                 scene = BeatTheDeskSim(objects_stack)
@@ -117,9 +117,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 objects = message_data.get("positions")
                 i = 0
                 for v in objects.values():
-                    for key in objects_place[i].keys():
-                        objects_place[i][key] = v
-                    i += 1
+                    if i < len(objects_place):
+                        for key in objects_place[i].keys():
+                            objects_place[i][key] = v
+                        i += 1
                 print(objects_place)
 
                 scene = BeatTheDeskSim(objects_place)

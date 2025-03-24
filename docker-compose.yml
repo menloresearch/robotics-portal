@@ -11,7 +11,7 @@ services:
       #- ~/.cache/:/root/.cahce/
       - /dev/dri:/dev/dri
       - /tmp/.X11-unix/:/tmp/.X11-unix
-      - ./:/workspace
+      - ./backend:/workspace
     ports:
       - "8000:8000"
     environment:

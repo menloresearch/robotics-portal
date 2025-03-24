@@ -118,7 +118,7 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-
+RUN python -m pip install --no-cache-dir PyOpenGL==3.1.9
 COPY . .
 
 RUN python cache_build_kernel.py

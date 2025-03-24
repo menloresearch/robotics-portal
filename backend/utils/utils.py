@@ -11,7 +11,6 @@ from fastapi import WebSocket
 from config import Config
 from .system_prompt import SYSTEM_PROMPT_WAREHOUSE
 
-# API_URL =
 
 
 def parse_json_from_mixed_string(mixed_string):
@@ -56,9 +55,14 @@ def parse_json_from_mixed_string(mixed_string):
 async def send_openai_request(
     api_url: str = Config.openai_base_url,
     prompt: str = "hello",
+<<<<<<< HEAD
     system_prompt: str = SYSTEM_PROMPT_WAREHOUSE,
     model: str = Config.llm_model,
     api_key: str = Config.api_key
+=======
+    system_prompt: str = SYSTEM_PROMPT,
+    model: str = Config.llm_model,
+>>>>>>> 65af84976c977c7ad0b4a797020294713565f40b
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -77,6 +81,10 @@ async def send_openai_request(
     import os
 
     # load_dotenv()
+<<<<<<< HEAD
+=======
+    api_key = os.getenv("API_KEY")
+>>>>>>> 65af84976c977c7ad0b4a797020294713565f40b
 
     # Prepare the request payload
     payload = {

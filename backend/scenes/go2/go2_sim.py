@@ -17,6 +17,7 @@ from utils.utils import (
 )
 from utils.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_WAREHOUSE
 from config import Config
+
 import logging
 
 logging.basicConfig(level=logging.ERROR)
@@ -37,6 +38,7 @@ class Go2Sim(SceneAbstract):
             "walking", "scenes/go2/checkpoints/go2-walking")
         env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg = pickle.load(
             open(log_dir+"/cfgs.pkl", "rb")
+
         )
         reward_cfg["reward_scales"] = {}
 
@@ -48,6 +50,7 @@ class Go2Sim(SceneAbstract):
             command_cfg=command_cfg,
             show_viewer=False,
             scene_config=config
+
         )
 
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
@@ -101,6 +104,7 @@ class Go2Sim(SceneAbstract):
             amplitude = amplitude * 80 / 45
         elif action == 0: # right 
             amplitude = amplitude * 90 / 45
+
         elif action == 3:
             amplitude = amplitude * 120
         return amplitude
@@ -213,7 +217,6 @@ class Go2Sim(SceneAbstract):
                         await send_personal_message(
                             websocket, json.dumps(processed_message), client_id
                         )
-                        # print("robot position:", env.position)
                         await asyncio.sleep(0.001)
 
                     else:
@@ -243,6 +246,7 @@ class Go2Sim(SceneAbstract):
         except Exception as e:
             logger.error(
                 f"Server processor error for client {client_id}: {str(e)}")
+
             return
 
     async def client_handler(
@@ -259,6 +263,7 @@ class Go2Sim(SceneAbstract):
         api_key = model_config.get("api_key", Config.api_key)
         system_prompt = model_config.get(
             "system_prompt", SYSTEM_PROMPT_WAREHOUSE)
+
         try:
             while True:
                 # Wait for message from client
@@ -277,6 +282,7 @@ class Go2Sim(SceneAbstract):
                     robot_position = str(self.env.position)
                     content += ". Robot is at the position " + robot_position
                     async for chunk in send_openai_request(api_url=api_url, api_key=api_key, system_prompt=system_prompt, prompt=content, model=llm_model):
+
                         await send_personal_message(
                             websocket,
                             json.dumps(
@@ -289,11 +295,11 @@ class Go2Sim(SceneAbstract):
                             ),
                             client_id,
                         )
-
                         final_answer += chunk["choices"][0]["delta"].get(
                             "content", "")
                     actions = parse_json_from_mixed_string(final_answer)
                     print(final_answer)
+
                     if actions is None:
                         await send_personal_message(
                             websocket,
@@ -313,6 +319,7 @@ class Go2Sim(SceneAbstract):
                                     action["type"],
                                     action.get(
                                         "angle", action.get("distance", 0)),
+
                                 )
                             )
 
@@ -331,6 +338,7 @@ class Go2Sim(SceneAbstract):
                     await message_queue.put(message_data)
                 last_activity = datetime.now()
 
+
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected")
             raise
@@ -339,4 +347,5 @@ class Go2Sim(SceneAbstract):
         except Exception as e:
             logger.error(
                 f"Client handler error for client {client_id}: {str(e)}")
+
             raise

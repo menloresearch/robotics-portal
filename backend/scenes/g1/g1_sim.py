@@ -225,7 +225,6 @@ class G1Sim(SceneAbstract):
                         await send_personal_message(
                             websocket, json.dumps(processed_message), client_id
                         )
-                        # print("robot position:", env.position)
                         await asyncio.sleep(0.001)
 
                     else:

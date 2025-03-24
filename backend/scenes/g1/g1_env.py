@@ -333,15 +333,15 @@ class G1Env:
         )
 
         # resample commands
-        envs_idx = (
-            (
-                self.episode_length_buf
-                % int(self.env_cfg["resampling_time_s"] / self.dt)
-                == 0
-            )
-            .nonzero(as_tuple=False)
-            .flatten()
-        )
+        # envs_idx = (
+        #     (
+        #         self.episode_length_buf
+        #         % int(self.env_cfg["resampling_time_s"] / self.dt)
+        #         == 0
+        #     )
+        #     .nonzero(as_tuple=False)
+        #     .flatten()
+        # )
         # self._resample_commands(envs_idx)
 
         # check termination and reset

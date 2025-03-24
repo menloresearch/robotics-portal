@@ -160,7 +160,7 @@ class Go2Sim(SceneAbstract):
                     elif message.get("type") == "camera_change":
                         main = message.get("camera")
 
-                    if (not actions_queue.empty()) and stop == True:
+                    if (not actions_queue.empty()) and stop:
                         action, amptitude = await actions_queue.get()
                         logger.info("action: " + str(action) + ", am:" + str(amptitude))
                         action = actions_map[action]
@@ -203,7 +203,6 @@ class Go2Sim(SceneAbstract):
                         await send_personal_message(
                             websocket, json.dumps(processed_message), client_id
                         )
-                        # print("robot position:", env.position)
                         await asyncio.sleep(0.001)
 
                     else:
@@ -275,7 +274,6 @@ class Go2Sim(SceneAbstract):
 
                         final_answer += chunk["choices"][0]["delta"].get("content", "")
                     actions = parse_json_from_mixed_string(final_answer)
-                    print(final_answer)
                     if actions is None:
                         await send_personal_message(
                             websocket,
@@ -310,7 +308,6 @@ class Go2Sim(SceneAbstract):
 
                 else:
                     await message_queue.put(message_data)
-                last_activity = datetime.now()
 
         except WebSocketDisconnect:
             logger.info(f"Client {client_id} disconnected")

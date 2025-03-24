@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { mainCanvas, mainCtx, isLoading, isConnected } from "$lib/store";
+  import { handleZoom } from "$lib/interacts";
+  import { browser } from "$app/environment";
 
   // Set 16:9 aspect ratio dimensions
   const aspectRatio = 16 / 9;
@@ -20,6 +22,9 @@
     context.fillStyle = "#1f2937";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Add zoom event listener
+    canvas.addEventListener("wheel", handleZoom, { passive: false });
+
     // Handle window resize to maintain aspect ratio
     const handleResize = () => {
       // Canvas dimensions are controlled by CSS and the container's aspect ratio
@@ -35,6 +40,17 @@
       mainCtx.set(null);
     };
   });
+
+  onDestroy(() => {
+    if (!browser) return;
+
+    const canvas = document.getElementById(
+      "secondaryDisplay",
+    ) as HTMLCanvasElement;
+    if (canvas) {
+      canvas.removeEventListener("wheel", handleZoom);
+    }
+  });
 </script>
 
 <div class="fixed inset-0 z-0 bg-gray-800 flex items-center justify-center">
@@ -48,8 +64,6 @@
     <div class="relative w-full" style="aspect-ratio: 16/9; max-height: 100%;">
       <canvas
         id="imageDisplay"
-        width="1920"
-        height="1080"
         class="absolute top-0 left-0 w-full h-full object-cover cursor-grab active:cursor-grabbing"
       ></canvas>
       {#if $isLoading && $isConnected}

@@ -160,11 +160,8 @@ Provide a JSON-formatted action sequence that can be directly parsed for robot m
     - description: warehouse
     - purpose : Used for storing goods and materials. Every objects are inside this warehouse, the center of warehouse is the `Location`.
 - Dragon:
-    - Location: (5.0, 0.0) 
+    - Location: (0.0, 5.0) 
     - color: green
-- Boat: 
-    - Location: (-5.0, 0.0)
-    - corlor: red
     
 ## IMPORTANT
 - all the Coordinates can be float

@@ -316,26 +316,30 @@ class G1Sim(SceneAbstract):
                             client_id,
                         )
                     else:
-                        actions = actions["actions"]
-                        for action in actions:
-                            await actions_queue.put(
-                                (
-                                    action["type"],
-                                    action.get(
-                                        "angle", action.get("distance", 0)),
+                        try:
+                            actions = actions["actions"]
+                            for action in actions:
+                                await actions_queue.put(
+                                    (
+                                        action["type"],
+                                        action.get(
+                                            "angle", action.get("distance", 0)),
+                                    )
                                 )
-                            )
 
-                        await send_personal_message(
-                            websocket,
-                            json.dumps(
-                                {
-                                    "type": "output",
-                                    "message": actions,
-                                }
-                            ),
-                            client_id,
-                        )
+                            await send_personal_message(
+                                websocket,
+                                json.dumps(
+                                    {
+                                        "type": "output",
+                                        "message": actions,
+                                    }
+                                ),
+                                client_id,
+                            )
+                        except Exception as e:
+                            print(e)
+                            pass
 
                 else:
                     await message_queue.put(message_data)

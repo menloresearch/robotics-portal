@@ -12,9 +12,8 @@ from scenes.go2.go2_sim import Go2Sim
 from scenes.g1.g1_sim import G1Sim
 from scenes.desk.desk_sim import BeatTheDeskSim
 
-import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR)

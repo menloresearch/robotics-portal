@@ -1,8 +1,9 @@
+from io import BytesIO
 import numpy as np
-import base64
 import json
-import cv2
 import asyncio
+import base64
+from PIL import Image
 
 import re
 import aiohttp
@@ -10,7 +11,6 @@ from datetime import datetime
 from fastapi import WebSocket
 from config import Config
 from .system_prompt import SYSTEM_PROMPT_WAREHOUSE
-
 
 
 def parse_json_from_mixed_string(mixed_string):
@@ -57,7 +57,7 @@ async def send_openai_request(
     prompt: str = "hello",
     system_prompt: str = SYSTEM_PROMPT_WAREHOUSE,
     model: str = Config.llm_model,
-    api_key: str = Config.api_key
+    api_key: str = Config.api_key,
 ):
     """
     Send an async request to a local OpenAI-like API server.
@@ -72,9 +72,6 @@ async def send_openai_request(
         dict: The API response with full text content
     """
     # Load API key from .env file
-    from dotenv import load_dotenv
-    import os
-
 
     # Prepare the request payload
     payload = {
@@ -105,9 +102,6 @@ async def send_openai_request(
             ) as response:
                 # Check if the request was successful
                 if response.status == 200:
-                    # Parse and return the response
-                    full_text_content = ""
-
                     async for chunk in response.content:
                         if chunk:
                             # Decode the chunk (assumes JSON lines format)
@@ -142,31 +136,29 @@ async def send_openai_request(
             # return None
 
 
-# Function to encode a NumPy uint8 array to base64
 def encode_numpy_array(arr):
     """
-    Encode a NumPy uint8 array to a base64 string.
+    Encode a NumPy uint8 array to a gzipped base64 string.
 
     Args:
         arr (numpy.ndarray): Input NumPy uint8 array
 
     Returns:
-        str: Base64 encoded string representation of the array
+        str: Gzipped base64 encoded string representation of the array
     """
+
     # Ensure the array is uint8 type
     if arr.dtype != np.uint8:
         arr = arr.astype(np.uint8)
 
-    # Convert the array to bytes
-    success, encoded_frame = cv2.imencode(".jpeg", arr)
+    img_pil = Image.fromarray(arr)
 
-    arr_bytes = encoded_frame.tobytes()
+    buffer = BytesIO()
+    img_pil.save(buffer, format="WebP", quality=50, method=0)
+    webp_bytes = buffer.getvalue()
+    buffer.close()
 
-    # Encode to base64
-    base64_encoded = base64.b64encode(arr_bytes)
-
-    # Convert to string for easier handling
-    return base64_encoded.decode("utf-8")
+    return base64.b64encode(webp_bytes).decode("utf-8")
 
 
 async def send_personal_message(websocket, message: str, target_id: int):

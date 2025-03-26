@@ -101,7 +101,7 @@ async def websocket_endpoint(websocket: WebSocket):
             elif message_data.get("env") == "g1":
                 scene = G1Sim(
                     config=message_data.get(
-                        "config", default_config()["scenes"].get("g1", {})
+                        "config", default_config()["scenes"].get("g1_mall", {})
                     )
                 )
 

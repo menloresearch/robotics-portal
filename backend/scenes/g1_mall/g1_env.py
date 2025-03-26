@@ -78,7 +78,8 @@ class G1Env:
 
         # add plain
         self.plane = self.scene.add_entity(
-            gs.morphs.URDF(file="urdf/plane/plane.urdf", fixed=True)
+            gs.morphs.URDF(file="urdf/plane/plane.urdf",
+                           fixed=True, visualization=False)
         )
 
         # add robot
@@ -96,9 +97,12 @@ class G1Env:
         self.inv_base_init_quat = inv_quat(self.base_init_quat)
         self.robot = self.scene.add_entity(
             gs.morphs.URDF(
-                file="assets/g1/g1_12dof.urdf",
+                file="assets/g1/g1_23dof_rev_1_0.urdf",
                 pos=self.base_init_pos.cpu().numpy(),
                 quat=self.base_init_quat.cpu().numpy(),
+                scale=1.3,
+                fixed=True,
+                convexify=True,
             ),
         )
         self.cam = self.scene.add_camera(
@@ -124,22 +128,25 @@ class G1Env:
         )
 
         self.build_scene_from_config(scene_config)
-        self.warehouse = self.scene.add_entity(
-            gs.morphs.Mesh(file='assets/warehouse/warehouse.obj',
+        # add mall
+        reception_scene = self.scene.add_entity(
+            gs.morphs.Mesh(file='assets/reception/mall.glb',
                            fixed=True,
                            euler=[90, 0, 0],
-                           pos=[0, 0, 0.0],
+                           pos=[0, 0, 0],
                            collision=False,
-                           decimate=True,
+                           #    decompose_nonconvex=True, coacd_options=coacd_options,
+                           #    decimate=True,
+                           #    convexify=True,
                            visualization=True,
-                           ),
-            vis_mode='visual',
+                           #    parse_glb_with_trimesh=True,
+                           ), vis_mode='visual',
         )
         # add bounding box
-        warehouse_bound_box = self.scene.add_entity(
-            gs.morphs.MJCF(file='assets/warehouse/bounding_box.xml',
-                           visualization=False,
-                           ),
+        desk_bound_box = self.scene.add_entity(
+            gs.morphs.MJCF(file='assets/reception/desk_bounding_box.xml', 
+                        visualization=False,
+                        ),
             vis_mode='visual',
         )
 
@@ -585,7 +592,7 @@ class G1Env:
 
     def reset(self):
         self.reset_buf[:] = True
-        self.reset_idx(torch.arange(self.num_envs, device=self.device))
+        self.reset_idx(torch.arange(self.num_envs, device=self.device, dtype=torch.long))
         return self.obs_buf, None
 
     # ------------ reward functions----------------
@@ -722,3 +729,35 @@ class G1Env:
                     setattr(self, entity["name"], mesh_entity)
 
         # Build the scene with the specified number of environments
+    def _greeting(self,step):
+        step = step % 200
+        # right arm joints
+        r_arm_jnt_names = [
+            'right_shoulder_pitch_joint',
+            'right_shoulder_roll_joint',
+            'right_shoulder_yaw_joint',
+            'right_elbow_joint',
+            'right_wrist_roll_joint',
+        ]
+        r_arm_dofs_idx = [self.robot.get_joint(name).dof_idx_local for name in r_arm_jnt_names]
+        # PD control parameters
+        arm_kp = 60
+        arm_kd = 20
+        self.robot.set_dofs_kp([arm_kp] * len(r_arm_jnt_names), r_arm_dofs_idx)
+        self.robot.set_dofs_kv([arm_kd] * len(r_arm_jnt_names), r_arm_dofs_idx)
+
+        default_dof_pos = np.array([0, 0, 0, 0.5, 0])
+        arm_wave_dafault_dof_pos = np.array([0, -0.9, -1.5, -0.65, 0])
+        target_dof_pos = np.array(arm_wave_dafault_dof_pos)
+        # waving arm
+        if step <150:
+        # for i in range(150):
+            # print(i)
+            w = 0.5 * np.sin(2 * np.pi * step / 50)  # Sine wave with amplitude 0.2 and period 50
+            self.robot.control_dofs_position(target_dof_pos + [0, w, 0, w, 0], r_arm_dofs_idx)
+            self.scene.step()
+        # return arm to default position
+        elif step < 200:
+        # for i in range(50):
+            self.robot.control_dofs_position(default_dof_pos, r_arm_dofs_idx)
+            self.scene.step() 

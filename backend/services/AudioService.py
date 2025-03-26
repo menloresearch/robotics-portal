@@ -68,7 +68,7 @@ class AudioService:
 
     async def send_to_tts(self, session, text, websocket):
         body = {"input": text, "model": "kokoro", "voice": Config.tts_voice,
-                "response_format": Config.tts_response_format, "stream": False}
+                "response_format": Config.tts_response_format, "stream": True}
         async with session.post(self.tts_url, json=body) as response:
             byte = await response.read()
             # logger.info("Putting bytes:" ,len(byte), str(datetime.now()))

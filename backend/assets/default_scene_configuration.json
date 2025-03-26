@@ -98,6 +98,55 @@
                 ]
             }
         },
+        "g1_mall": {
+            "models": {
+                "rl": {
+                    "walking": "scenes/g1/checkpoints/g1-walking",
+                    "left": "scenes/g1/checkpoints/g1-left",
+                    "right": "scenes/g1/checkpoints/g1-right",
+                    "stand": "scenes/g1/checkpoints/g1-stand"
+                },
+                "llm": {
+                    "api_url": "https://api.openai.com/v1/chat/completions",
+                    "model": "gpt-4o"
+                }
+            },
+            "robot": {
+                "base_init_pos": [
+                    0,
+                    0,
+                    1
+                ],
+                "base_init_quat": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            "scene": {
+                "entities": [
+                    {
+                        "type": "Mesh",
+                        "name": "dragon",
+                        "file": "meshes/dragon/dragon.obj",
+                        "pos": [
+                            0,
+                            5,
+                            0
+                        ],
+                        "fixed": true,
+                        "scale": 0.02,
+                        "euler": [
+                            90,
+                            0,
+                            45
+                        ],
+                        "vis_mode": "visual"
+                    }
+                ]
+            }
+        },
         "arm": {
             "kp": [
                 4500,

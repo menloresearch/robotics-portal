@@ -173,4 +173,18 @@ Provide a JSON-formatted action sequence that can be directly parsed for robot m
 - always planning to avoid obstacles
 """
 
-SYSTEM_PROMPT_MALL = """"""
+SYSTEM_PROMPT_MALL = """
+## Object list:
+- Reception:
+    - Location: (0, 0)
+    - color: white
+    - description: Main entry and information desk.
+- Cafe:
+    - Location: (-12, -7)
+    - color: brown
+    - description: A place for refreshments and casual meetings.
+- Supermarket:
+    - Location: (-12, 7)
+    - color: white
+    - description: A retail store selling groceries and household items.
+"""

@@ -9,12 +9,12 @@ from utils.utils import send_personal_message, check_timeout
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
-from scenes.g1.g1_sim import G1Sim
+from scenes.g1_mall.g1_sim import G1Sim
 from scenes.desk.desk_sim import BeatTheDeskSim
 
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR)

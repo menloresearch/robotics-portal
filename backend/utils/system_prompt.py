@@ -172,3 +172,5 @@ Provide a JSON-formatted action sequence that can be directly parsed for robot m
 - Oy is in the left of Ox
 - always planning to avoid obstacles
 """
+
+SYSTEM_PROMPT_MALL = """"""

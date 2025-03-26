@@ -11,3 +11,4 @@ class Config:
         "LLM_MODEL", "anthropic/claude-3.5-haiku-20241022")
     api_key = os.environ.get("API_KEY", "")
     timeout_seconds = float(os.environ.get("TIMEOUT_SECONDS", 300))
+    enable_history = bool(os.environ.get("ENABLE_HISTORY", False))

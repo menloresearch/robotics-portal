@@ -110,6 +110,69 @@ class G1Sim(SceneAbstract):
             obs, _, rews, dones, infos = env.step(action)
         return obs
 
+    async def handle_voice_command(self, message_data: dict, websocket: WebSocket, client_id: str, actions_queue: asyncio.Queue):
+        pass
+
+    async def handle_text_command(self, message_data: dict, websocket: WebSocket, client_id: str, actions_queue: asyncio.Queue):
+        final_answer = ""
+        content = message_data.get("content", "")
+        robot_position = str(self.env.position)
+        content += ". Robot is at the position " + robot_position
+        async for chunk in self.llm_service.chat_completion_stream(message_content=content):
+            await send_personal_message(
+                websocket,
+                json.dumps(
+                    {
+                        "type": "reasoning",
+                        "message": chunk["choices"][0]["delta"].get(
+                            "content", ""
+                        ),
+                    }
+                ),
+                client_id,
+            )
+
+            final_answer += chunk["choices"][0]["delta"].get(
+                "content", "")
+        actions = parse_json_from_mixed_string(final_answer)
+        print(final_answer)
+        if actions is None:
+            await send_personal_message(
+                websocket,
+                json.dumps(
+                    {
+                        "type": "error",
+                        "message": "can not parse action from LLM",
+                    }
+                ),
+                client_id,
+            )
+        else:
+            try:
+                actions = actions["actions"]
+                for action in actions:
+                    await actions_queue.put(
+                        (
+                            action["type"],
+                            action.get(
+                                "angle", action.get("distance", 0)),
+                        )
+                    )
+
+                await send_personal_message(
+                    websocket,
+                    json.dumps(
+                        {
+                            "type": "output",
+                            "message": actions,
+                        }
+                    ),
+                    client_id,
+                )
+            except Exception as e:
+                print(e)
+                pass
+
     async def server_processor(
         self,
         message_queue: asyncio.Queue,
@@ -266,12 +329,6 @@ class G1Sim(SceneAbstract):
         websocket: WebSocket,
         last_activity: datetime,
     ):
-        model_config = self.config.get("models", {}).get("llm", {})
-        api_url = model_config.get("api_url", Config.openai_base_url)
-        llm_model = model_config.get("model", Config.llm_model)
-        api_key = model_config.get("api_key", Config.api_key)
-        system_prompt = model_config.get(
-            "system_prompt", SYSTEM_PROMPT_WAREHOUSE)
         try:
             while True:
                 # Wait for message from client
@@ -285,65 +342,9 @@ class G1Sim(SceneAbstract):
 
                 # Add client message to processing queue
                 if message_data.get("type") == "command":
-                    final_answer = ""
-                    content = message_data.get("content", "")
-                    robot_position = str(self.env.position)
-                    content += ". Robot is at the position " + robot_position
-                    async for chunk in self.llm_service.chat_completion_stream(message_content=content):
-                        await send_personal_message(
-                            websocket,
-                            json.dumps(
-                                {
-                                    "type": "reasoning",
-                                    "message": chunk["choices"][0]["delta"].get(
-                                        "content", ""
-                                    ),
-                                }
-                            ),
-                            client_id,
-                        )
-
-                        final_answer += chunk["choices"][0]["delta"].get(
-                            "content", "")
-                    actions = parse_json_from_mixed_string(final_answer)
-                    print(final_answer)
-                    if actions is None:
-                        await send_personal_message(
-                            websocket,
-                            json.dumps(
-                                {
-                                    "type": "error",
-                                    "message": "can not parse action from LLM",
-                                }
-                            ),
-                            client_id,
-                        )
-                    else:
-                        try:
-                            actions = actions["actions"]
-                            for action in actions:
-                                await actions_queue.put(
-                                    (
-                                        action["type"],
-                                        action.get(
-                                            "angle", action.get("distance", 0)),
-                                    )
-                                )
-
-                            await send_personal_message(
-                                websocket,
-                                json.dumps(
-                                    {
-                                        "type": "output",
-                                        "message": actions,
-                                    }
-                                ),
-                                client_id,
-                            )
-                        except Exception as e:
-                            print(e)
-                            pass
-
+                    await self.handle_text_command(message_data, websocket, client_id, actions_queue)
+                elif message_data.get("type") == "voice":
+                    await self.handle_voice_command(message_data, websocket, client_id, actions_queue)
                 else:
                     await message_queue.put(message_data)
                 last_activity = datetime.now()

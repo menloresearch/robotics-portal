@@ -13,11 +13,12 @@ from utils.utils import (
     encode_numpy_array,
     send_personal_message,
     send_openai_request,
-    parse_json_from_mixed_string
+    parse_json_from_mixed_string,
 )
-from utils.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_WAREHOUSE
+from utils.system_prompt import SYSTEM_PROMPT_WAREHOUSE
 import logging
 from config import Config
+
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
@@ -32,10 +33,9 @@ class G1Sim(SceneAbstract):
     def load_policy(self, config):
         model_config = config.get("models", {}).get("rl", {})
 
-        log_dir = model_config.get(
-            "walking", "scenes/g1/checkpoints/g1-walking")
-        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
-            open(log_dir+"/cfgs.pkl", "rb")
+        log_dir = model_config.get("walking", "scenes/g1/checkpoints/g1-walking")
+        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = (
+            pickle.load(open(log_dir + "/cfgs.pkl", "rb"))
         )
         reward_cfg["reward_scales"] = {}
 
@@ -47,7 +47,7 @@ class G1Sim(SceneAbstract):
             command_cfg=command_cfg,
             domain_rand_cfg=domain_rand_cfg,
             show_viewer=False,
-            scene_config=config
+            scene_config=config,
         )
 
         runner = OnPolicyRunner(self.env, train_cfg, log_dir, device="cpu")
@@ -57,8 +57,8 @@ class G1Sim(SceneAbstract):
 
         log_dir = model_config.get("left", "scenes/g1/checkpoints/g1-left")
 
-        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
-            open(log_dir+"/cfgs.pkl", "rb")
+        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = (
+            pickle.load(open(log_dir + "/cfgs.pkl", "rb"))
         )
         reward_cfg["reward_scales"] = {}
 
@@ -68,8 +68,8 @@ class G1Sim(SceneAbstract):
         self.policy_left = runner.get_inference_policy(device="cuda:0")
 
         log_dir = model_config.get("right", "scenes/g1/checkpoints/g1-right")
-        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
-            open(log_dir+"/cfgs.pkl", "rb")
+        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = (
+            pickle.load(open(log_dir + "/cfgs.pkl", "rb"))
         )
         reward_cfg["reward_scales"] = {}
 
@@ -79,8 +79,8 @@ class G1Sim(SceneAbstract):
         self.policy_right = runner.get_inference_policy(device="cuda:0")
 
         log_dir = model_config.get("stand", "scenes/g1/checkpoints/g1-stand")
-        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
-            open(log_dir+"/cfgs.pkl", "rb")
+        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = (
+            pickle.load(open(log_dir + "/cfgs.pkl", "rb"))
         )
         reward_cfg["reward_scales"] = {}
 
@@ -88,14 +88,18 @@ class G1Sim(SceneAbstract):
         resume_path = os.path.join(log_dir, "model_1000.pt")
         runner.load(resume_path)
         self.policy_stand = runner.get_inference_policy(device="cuda:0")
-        self.list_actions = [self.policy_right,
-                             self.policy_left, self.policy_stand, self.policy_walk]
+        self.list_actions = [
+            self.policy_right,
+            self.policy_left,
+            self.policy_stand,
+            self.policy_walk,
+        ]
         return
 
     def transform(self, action, amplitude):
-        if action == 1 :  # left
+        if action == 1:  # left
             amplitude = amplitude * 100 / 45
-        elif action == 0: # right 
+        elif action == 0:  # right
             amplitude = amplitude * 90 / 45
         elif action == 3:
             amplitude = amplitude * 120
@@ -164,12 +168,10 @@ class G1Sim(SceneAbstract):
 
                     if (not actions_queue.empty()) and stop == True:
                         action, amptitude = await actions_queue.get()
-                        logger.info("action: " + str(action) +
-                                    ", am:" + str(amptitude))
+                        logger.info("action: " + str(action) + ", am:" + str(amptitude))
                         action = actions_map[action]
                         steps = self.transform(action, amptitude)
-                        logger.info("action: " + str(action) +
-                                    ", steps:" + str(steps))
+                        logger.info("action: " + str(action) + ", steps:" + str(steps))
                         step = 0
                         stop = False
 
@@ -189,13 +191,10 @@ class G1Sim(SceneAbstract):
                         )
                         god_view, _, _, _ = self.env.cam_god.render()
 
-                        main_view = main_view[:, :, ::-1]
-                        god_view = god_view[:, :, ::-1]
                         with torch.no_grad():
                             if stop:
                                 actions = self.list_actions[2](obs)  # stand
-                                obs, _, rews, dones, infos = self.env.step(
-                                    actions)
+                                obs, _, rews, dones, infos = self.env.step(actions)
                             else:
                                 actions = self.list_actions[action](
                                     obs,
@@ -213,8 +212,7 @@ class G1Sim(SceneAbstract):
                                         actions, y=-0.5
                                     )
                                 else:
-                                    obs, _, rews, dones, infos = self.env.step(
-                                        actions)
+                                    obs, _, rews, dones, infos = self.env.step(actions)
 
                         processed_message = {
                             "type": "streaming_view",
@@ -252,8 +250,7 @@ class G1Sim(SceneAbstract):
             logger.error(f"Server processor for client {client_id} cancelled")
             return
         except Exception as e:
-            logger.error(
-                f"Server processor error for client {client_id}: {str(e)}")
+            logger.error(f"Server processor error for client {client_id}: {str(e)}")
             return
 
     async def client_handler(
@@ -286,7 +283,13 @@ class G1Sim(SceneAbstract):
                     content = message_data.get("content", "")
                     robot_position = str(self.env.position)
                     content += ". Robot is at the position " + robot_position
-                    async for chunk in send_openai_request(api_url=api_url, api_key=api_key, system_prompt=system_prompt, prompt=content, model=llm_model):
+                    async for chunk in send_openai_request(
+                        api_url=api_url,
+                        api_key=api_key,
+                        system_prompt=system_prompt,
+                        prompt=content,
+                        model=llm_model,
+                    ):
                         await send_personal_message(
                             websocket,
                             json.dumps(
@@ -300,8 +303,7 @@ class G1Sim(SceneAbstract):
                             client_id,
                         )
 
-                        final_answer += chunk["choices"][0]["delta"].get(
-                            "content", "")
+                        final_answer += chunk["choices"][0]["delta"].get("content", "")
                     actions = parse_json_from_mixed_string(final_answer)
                     print(final_answer)
                     if actions is None:
@@ -322,8 +324,7 @@ class G1Sim(SceneAbstract):
                                 await actions_queue.put(
                                     (
                                         action["type"],
-                                        action.get(
-                                            "angle", action.get("distance", 0)),
+                                        action.get("angle", action.get("distance", 0)),
                                     )
                                 )
 
@@ -350,6 +351,5 @@ class G1Sim(SceneAbstract):
         except asyncio.CancelledError:
             logger.info(f"Client handler for client {client_id} cancelled")
         except Exception as e:
-            logger.error(
-                f"Client handler error for client {client_id}: {str(e)}")
+            logger.error(f"Client handler error for client {client_id}: {str(e)}")
             raise

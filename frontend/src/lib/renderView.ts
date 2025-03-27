@@ -28,7 +28,7 @@ async function renderSingleView(
   }
 
   // Create blob and bitmap
-  const blob = new Blob([bytes.buffer], { type: "image/jpeg" });
+  const blob = new Blob([bytes.buffer], { type: "image/webp" });
   const bitmap = await createImageBitmap(blob);
 
   // Draw bitmap directly - more efficient than Image

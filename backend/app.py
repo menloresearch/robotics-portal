@@ -17,6 +17,7 @@ import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)

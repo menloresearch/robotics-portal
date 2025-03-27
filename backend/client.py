@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from services.AudioService import AudioService
 audio_service = AudioService()
-
+audio_service.stt_url = "http://localhost:3348/v1/audio/transcriptions"
 def show_byte_image(message):
     nparr = np.frombuffer(message, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Decode as color image
@@ -61,7 +61,8 @@ async def websocket_client():
                             image_byte = decode_base64_to_audio(message["god_view"])
                             show_byte_image(image_byte)
                         else:
-                            print(message)
+                            # print(message)
+                            pass
                             
                     except json.JSONDecodeError:
                         print(f"Received non-JSON message: {message}")

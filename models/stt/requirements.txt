@@ -8,4 +8,5 @@ tqdm
 fastapi[all]
 uvicorn
 python-multipart
-torch==2.6.0
+torch==2.5.1
+gunicorn

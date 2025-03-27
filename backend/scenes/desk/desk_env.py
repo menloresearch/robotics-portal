@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class BeatTheDeskEnv:
-    def __init__(self, objects) -> None:
+    def __init__(self, objects, res) -> None:
         self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
         self.kv = [450, 450, 350, 350, 200, 200, 200, 10, 10]
         self.force_range = [
@@ -42,7 +42,7 @@ class BeatTheDeskEnv:
                 camera_pos=(3, 0.6, 2.5),
                 camera_lookat=(0.0, 0.6, 0.5),
                 camera_fov=30,
-                max_FPS=60,
+                max_FPS=30,
             ),
             show_viewer=False,
             show_FPS=False,
@@ -73,7 +73,23 @@ class BeatTheDeskEnv:
             ),
         )
 
-        self.cam = self.scene.add_camera(
+        self.cam_480 = self.scene.add_camera(
+            res=(854, 480),
+            pos=(4, 0.5, 2.5),
+            lookat=(0, 0.5, 0),
+            fov=30,
+            GUI=False,
+        )
+
+        self.cam_720 = self.scene.add_camera(
+            res=(1280, 720),
+            pos=(4, 0.5, 2.5),
+            lookat=(0, 0.5, 0),
+            fov=30,
+            GUI=False,
+        )
+
+        self.cam_1080 = self.scene.add_camera(
             res=(1920, 1080),
             pos=(4, 0.5, 2.5),
             lookat=(0, 0.5, 0),
@@ -81,10 +97,10 @@ class BeatTheDeskEnv:
             GUI=False,
         )
 
-        self.cam_god = self.scene.add_camera(
+        self.cam_secondary = self.scene.add_camera(
             res=(640, 480),
-            pos=(0.5, 4.5, 2.5),
-            lookat=(0.5, 0, 0),
+            pos=(0.5, 0.5, 2.5),
+            lookat=(0.5, 0.5, 0),
             fov=30,
             GUI=False,
         )
@@ -92,6 +108,13 @@ class BeatTheDeskEnv:
         self.spawn_objs(objects)
 
         self.scene.build()
+
+        if res == 1080:
+            self.cam_main = self.cam_1080
+        elif res == 720:
+            self.cam_main = self.cam_720
+        elif res == 480:
+            self.cam_main = self.cam_480
 
         self.arm_dofs_idx = [
             self.robot.get_joint(name).dof_idx_local for name in self.arm_jnt_names

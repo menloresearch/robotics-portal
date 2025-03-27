@@ -18,12 +18,13 @@ logger = logging.getLogger(__name__)
 
 
 class BeatTheDeskSim(SceneAbstract):
-    def __init__(self, objects) -> None:
+    def __init__(self, objects, res) -> None:
         super().__init__()
-        self.env = BeatTheDeskEnv(objects)
+        self.env = BeatTheDeskEnv(objects, res)
         self.objects = objects
         self.transform_objs()
         self.path = []
+        self.res = res
 
     def get_cubes_locations(self):
         return_list = []
@@ -48,8 +49,9 @@ class BeatTheDeskSim(SceneAbstract):
             zoom = 0
             macro = 0
 
-            cam_pos = self.env.cam.pos
+            cam_pos = self.env.cam_main.pos
             arm_pos = self.env.init_arm_dofs
+
             finger_pos = self.env.init_finger_dofs
             finger_grasp = False
 
@@ -76,6 +78,15 @@ class BeatTheDeskSim(SceneAbstract):
                         elif message["direction"] == "out":
                             if zoom < 1:
                                 zoom += 0.1
+
+                    elif message.get("type") == "resolution_change":
+                        self.res = message.get("resolution")
+                        if self.res == 1080:
+                            self.env.cam_main = self.env.cam_1080
+                        elif self.res == 720:
+                            self.env.cam_main = self.env.cam_720
+                        elif self.res == 480:
+                            self.env.cam_main = self.env.cam_480
 
                     elif message.get("type") == "stop":
                         while not actions_queue.empty():
@@ -128,17 +139,17 @@ class BeatTheDeskSim(SceneAbstract):
 
                     self.env.step()
 
-                    lookat = np.array(self.env.cam.lookat)
-                    self.env.cam.set_pose(
+                    lookat = np.array(self.env.cam_main.lookat)
+                    self.env.cam_main.set_pose(
                         pos=cam_pos + zoom * (cam_pos - lookat),
                     )
-                    main_view, _, _, _ = self.env.cam.render()
-                    god_view, _, _, _ = self.env.cam_god.render()
+                    main_view, _, _, _ = self.env.cam_main.render()
+                    secondary_view, _, _, _ = self.env.cam_secondary.render()
 
                     processed_message = {
                         "type": "streaming_view",
                         "main_view": encode_numpy_array(main_view),
-                        "god_view": encode_numpy_array(god_view),
+                        "god_view": encode_numpy_array(secondary_view),
                     }
 
                     await send_personal_message(
@@ -190,7 +201,6 @@ class BeatTheDeskSim(SceneAbstract):
                     message_data = json.loads(data)
                 except json.JSONDecodeError:
                     message_data = {"type": "message", "content": data}
-                last_activity = datetime.now()
 
                 if message_data.get("type") == "command":
                     try:

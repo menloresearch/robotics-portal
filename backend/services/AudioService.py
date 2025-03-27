@@ -100,11 +100,19 @@ class AudioService:
                 if not self.llm_text_queue.empty():
                     async with aiohttp.ClientSession() as session:
                         message = await self.llm_text_queue.get()
+                        print("tts processing: ", message)
                         if message is None: # End of turn
                             if answer:
                                 await self.send_to_tts(session, answer, websocket)
                                 logger.info(answer)
-                            break
+                                
+                            ## Reset for the next turn
+                            final_answer = ""
+                            answer = ""
+                            tokens_processed = 0
+                            chunk_size = 10
+                            currentCount = 0
+                            continue
                         object = message
 
                         if object["choices"][0]["delta"].get("content"):

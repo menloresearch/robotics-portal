@@ -78,6 +78,7 @@ class G1Sim(SceneAbstract):
 
     async def handle_voice_command(self, message_data: dict, websocket: WebSocket, client_id: str, actions_queue: asyncio.Queue):
         if message_data.get("content"):
+            final_answer = ""
             audio_byte_input = decode_base64_to_audio(message_data["content"])
             content = await self.audio_service.stt(audio_data=audio_byte_input)
             robot_position = str(self.env.position)
@@ -99,6 +100,9 @@ class G1Sim(SceneAbstract):
                 final_answer += chunk["choices"][0]["delta"].get(
                     "content", "")
                 await self.audio_service.llm_text_queue.put(chunk)
+                # self.audio_service.llm_text_queue.task_done()
+            await self.audio_service.llm_text_queue.put(None) # send end signal
+            # self.audio_service.llm_text_queue.task_done()
             actions = parse_action_robot_in_mall(final_answer)
             print(final_answer)
             if actions is None:

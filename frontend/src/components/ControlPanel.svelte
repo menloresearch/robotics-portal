@@ -4,8 +4,9 @@
     environments,
     isConnected,
     isLoading,
+    selectedResolution,
   } from "$lib/store";
-  import { connect, disconnect } from "$lib/connection";
+  import { connect, disconnect, setResolution } from "$lib/connection";
 
   // TypeScript interfaces
   interface Coordinate {
@@ -286,6 +287,22 @@
           </div>
         </div>
       {/if}
+
+      <div class="space-y-2 mt-4">
+        <h3 class="text-sm font-medium text-gray-400">Camera Resolution</h3>
+        <div class="flex flex-col space-y-2">
+          <select
+            bind:value={$selectedResolution}
+            on:change={() => setResolution($selectedResolution)}
+            disabled={!$isConnected}
+            class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white"
+          >
+            <option value={480}>480p</option>
+            <option value={720}>720p</option>
+            <option value={1080}>1080p</option>
+          </select>
+        </div>
+      </div>
 
       <div class="space-y-2 mt-4">
         <h3 class="text-sm font-medium text-gray-400">Connection</h3>

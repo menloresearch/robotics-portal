@@ -7,6 +7,7 @@ import {
   receivedFirstFrame,
   reasoningMessages,
   selectedEnvironment,
+  selectedResolution,
   mainCtx,
   mainCanvas,
   secondaryCtx,
@@ -39,6 +40,7 @@ export function connect(objectPositions?: any) {
     const message: any = {
       type: "env",
       env: get(selectedEnvironment),
+      resolution: get(selectedResolution),
     };
 
     // Add positions data if provided
@@ -65,6 +67,10 @@ export function connect(objectPositions?: any) {
 
       if (message.type === "connection_established" && message.client_id) {
         console.info(`Connection with id ${message.client_id}`);
+      }
+
+      if (message.type === "resolution" && message.resolution) {
+        selectedResolution.set(message.resolution);
       }
 
       // Handle different message types
@@ -169,13 +175,13 @@ export function switchCamera(
   }
 }
 
-export function setFrameRate(fpsValue: string) {
+export function setResolution(resolution: string) {
   const currentSocket = get(socket);
   if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
     currentSocket.send(
       JSON.stringify({
-        type: "fps_change",
-        fps: parseInt(fpsValue),
+        type: "resolution_change",
+        resolution: resolution,
       }),
     );
   }

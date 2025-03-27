@@ -24,6 +24,7 @@ export const latency = writable<string>("0");
 export const frameSize = writable<string>("0");
 export const latencyArray = writable<number[]>([]);
 export const framesInLastSecond = writable<number[]>([]);
+export const selectedResolution = writable<number>(720);
 
 // Canvas references
 export const mainCanvas = writable<HTMLCanvasElement | null>(null);

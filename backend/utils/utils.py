@@ -154,7 +154,7 @@ def encode_numpy_array(arr):
     img_pil = Image.fromarray(arr)
 
     buffer = BytesIO()
-    img_pil.save(buffer, format="WebP", quality=50, method=0)
+    img_pil.save(buffer, format="WebP", quality=80, method=0)
     webp_bytes = buffer.getvalue()
     buffer.close()
 

@@ -761,3 +761,71 @@ class G1Env:
         # for i in range(50):
             self.robot.control_dofs_position(default_dof_pos, r_arm_dofs_idx)
             self.scene.step() 
+    def _head_scratch(self, step):
+        step = step %130
+        # left arm joints
+        l_arm_jnt_names = [
+            'left_shoulder_pitch_joint',
+            'left_shoulder_roll_joint',
+            'left_shoulder_yaw_joint',
+            'left_elbow_joint',
+            'left_wrist_roll_joint',
+        ]
+        l_arm_dofs_idx = [self.robot.get_joint(name).dof_idx_local for name in l_arm_jnt_names]
+        # PD control parameters
+        arm_kp = 60
+        arm_kd = 20
+        self.robot.set_dofs_kp([arm_kp] * len(l_arm_jnt_names), l_arm_dofs_idx)
+        self.robot.set_dofs_kv([arm_kd] * len(l_arm_jnt_names), l_arm_dofs_idx)
+
+        default_dof_pos = np.array([0, 0, 0, 0.5, 0])
+        target_dafault_dof_pos = np.array([-1.3, 1.0, 0.3, -0.9, -0.6])
+        # waving arm
+        # for i in range(80):
+        if step < 80:
+            w = 0.2 * np.sin(4 * np.pi * step / 50)  # Sine wave with amplitude 0.2 and period 50
+            target_dof_pos = target_dafault_dof_pos + [0, 0, 0, w, 0]
+            self.robot.control_dofs_position(target_dof_pos, l_arm_dofs_idx)
+            self.scene.step()
+        # return arm to default position
+        # for i in range(50):
+        elif step < 130:
+            self.robot.control_dofs_position(default_dof_pos, l_arm_dofs_idx)
+            self.scene.step() 
+
+    def _receive_customer(self, step):
+        step = step %80
+        # right arm joints
+        r_arm_jnt_names = [
+            'right_shoulder_pitch_joint',
+            'right_shoulder_roll_joint',
+            'right_shoulder_yaw_joint',
+            'right_elbow_joint',
+            'right_wrist_roll_joint',
+        ]
+        r_arm_dofs_idx = [self.robot.get_joint(name).dof_idx_local for name in r_arm_jnt_names]
+        # left arm joints
+        l_arm_jnt_names = [
+            'left_shoulder_pitch_joint',
+            'left_shoulder_roll_joint',
+            'left_shoulder_yaw_joint',
+            'left_elbow_joint',
+            'left_wrist_roll_joint',
+        ]
+        l_arm_dofs_idx = [self.robot.get_joint(name).dof_idx_local for name in l_arm_jnt_names]
+        # PD control parameters
+        arm_kp = 60
+        arm_kd = 20
+        self.robot.set_dofs_kp([arm_kp] * len(r_arm_jnt_names), r_arm_dofs_idx)
+        self.robot.set_dofs_kv([arm_kd] * len(r_arm_jnt_names), r_arm_dofs_idx)
+        self.robot.set_dofs_kp([arm_kp] * len(l_arm_jnt_names), l_arm_dofs_idx)
+        self.robot.set_dofs_kv([arm_kd] * len(l_arm_jnt_names), l_arm_dofs_idx)
+
+        default_dof_pos = np.array([0, 0, 0, 0.5, 0])
+        target_l_dof_pos = np.array([-0.18, 0.81, -1.36, -0.325, -0.2])
+        target_r_dof_pos = np.array([-0.353, -0.87, 1.34, -0.3, 0.5])
+        # waving arm
+        # for i in range(80):
+        self.robot.control_dofs_position(target_l_dof_pos, l_arm_dofs_idx)
+        self.robot.control_dofs_position(target_r_dof_pos, r_arm_dofs_idx)
+        self.scene.step()

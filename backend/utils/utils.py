@@ -12,7 +12,7 @@ from config import Config
 from .system_prompt import SYSTEM_PROMPT_WAREHOUSE
 
 def parse_action_robot_in_mall(string):
-    return {"actions":[{"type":"talking"}]}
+    return {"actions":[{"type":"talking"}, {"type":"head_scratch"}]}
 
 def parse_json_from_mixed_string(mixed_string):
     """

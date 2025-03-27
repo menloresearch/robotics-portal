@@ -271,12 +271,22 @@ class G1SimMall(SceneAbstract):
                         god_view = god_view[:, :, ::-1]
                         with torch.no_grad():
                             if stop:
-
-                                self.env._greeting(step)
+                                steps = 80
+                                self.env._receive_customer(step)
                             else:
 
-                                # if action == "talking":
-                                self.env._greeting(step)
+                                if action == "talking":
+                                    steps = 80
+                                    self.env._receive_customer(step)
+                                elif action == "greeting":
+                                    steps = 200
+                                    self.env._greeting(step)
+                                elif action == "head_scratch":
+                                    steps = 130
+                                    self.env._head_scratch(step)
+                                else:
+                                    steps = 80
+                                    self.env._receive_customer(step)
 
                         processed_message = {
                             "type": "streaming_view",
@@ -327,6 +337,7 @@ class G1SimMall(SceneAbstract):
         last_activity: datetime,
     ):
         try:
+            await actions_queue.put("greeting")
             while True:
                 # Wait for message from client
                 data = await websocket.receive_text()

@@ -22,7 +22,7 @@ def show_byte_image(message):
 
 # Configuration
 SERVER_ADDRESS = "ws://localhost:8000/ws"  # Replace with your server's address and port
-INIT_MESSAGE = {"type": "env", "env": "g1"}  # Replace with your desired init message
+INIT_MESSAGE = {"type": "env", "env": "g1_mall"}  # Replace with your desired init message
 
 audio_question = encode_audio_to_base64(open("/home/thuan/Downloads/where_is_super_market.wav","rb").read())
 

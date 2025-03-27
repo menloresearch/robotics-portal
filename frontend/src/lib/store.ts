@@ -26,6 +26,16 @@ export const latencyArray = writable<number[]>([]);
 export const framesInLastSecond = writable<number[]>([]);
 export const selectedResolution = writable<number>(720);
 
+// Frame buffer settings
+export interface FrameData {
+  mainView: string;
+  secondaryView: string;
+  timestamp: number;
+}
+export const frameBuffer = writable<FrameData[]>([]);
+export const isBuffering = writable<boolean>(true);
+export const bufferSize = writable<number>(2); // Buffer size in seconds
+
 // Canvas references
 export const mainCanvas = writable<HTMLCanvasElement | null>(null);
 export const mainCtx = writable<CanvasRenderingContext2D | null>(null);

@@ -5,6 +5,7 @@
     isConnected,
     isLoading,
     selectedResolution,
+    bufferSize
   } from "$lib/store";
   import { connect, disconnect, setResolution } from "$lib/connection";
 
@@ -301,6 +302,26 @@
             <option value={720}>720p</option>
             <option value={1080}>1080p</option>
           </select>
+        </div>
+      </div>
+      
+      <div class="space-y-2 mt-4">
+        <h3 class="text-sm font-medium text-gray-400">Frame Buffer Size</h3>
+        <div class="flex flex-col space-y-2">
+          <select
+            bind:value={$bufferSize}
+            disabled={$isConnected}
+            class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-md text-white"
+          >
+            <option value={0.5}>0.5 seconds</option>
+            <option value={1}>1 second</option>
+            <option value={2}>2 seconds</option>
+            <option value={3}>3 seconds</option>
+            <option value={5}>5 seconds</option>
+          </select>
+          <p class="text-xs text-gray-400">
+            Larger buffer helps prevent frame loss but increases latency
+          </p>
         </div>
       </div>
 

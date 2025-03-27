@@ -13,9 +13,82 @@ import {
   secondaryCtx,
   secondaryCanvas,
   frameSize,
+  frameBuffer,
+  bufferSize,
+  isBuffering,
 } from "./store";
 import { get } from "svelte/store";
 import { renderView } from "./renderView";
+
+let frameProcessorInterval: number | null = null;
+
+// Process frames from the buffer at regular intervals
+function initFrameBufferProcessor() {
+  // Clear any existing interval
+  if (frameProcessorInterval) {
+    window.clearInterval(frameProcessorInterval);
+  }
+
+  // Start a new interval to process frames
+  frameProcessorInterval = window.setInterval(() => {
+    processFrameBuffer();
+  }, 16); // ~60fps processing rate
+}
+
+// Process frames from the buffer
+function processFrameBuffer() {
+  const buffer = get(frameBuffer);
+  const bufferSizeInSeconds = get(bufferSize);
+
+  if (buffer.length === 0) {
+    return; // No frames to process
+  }
+
+  // Calculate current buffer duration
+  const oldestFrameTime = buffer[0].timestamp;
+  const newestFrameTime = buffer[buffer.length - 1].timestamp;
+  const bufferDuration = (newestFrameTime - oldestFrameTime) / 1000; // in seconds
+
+  // If still in initial buffering phase
+  if (get(isBuffering)) {
+    // Check if we've accumulated enough frames (bufferSizeInSeconds worth)
+    if (bufferDuration >= bufferSizeInSeconds) {
+      console.log(
+        `Buffer filled with ${buffer.length} frames (${bufferDuration.toFixed(1)}s). Starting playback.`,
+      );
+      isBuffering.set(false);
+    } else {
+      // Still filling initial buffer, don't render yet
+      return;
+    }
+  }
+
+  // We want to maintain the buffer at our target size
+  // Only display a frame if we have more than our target buffer
+  // This ensures we keep ~bufferSizeInSeconds of frames in the buffer at all times
+  if (bufferDuration > bufferSizeInSeconds) {
+    // Get the oldest frame from the buffer
+    const oldestFrame = buffer[0];
+
+    // Render the oldest frame
+    renderView(oldestFrame.mainView, oldestFrame.secondaryView);
+
+    // Remove only the rendered frame from the buffer
+    frameBuffer.update((currentBuffer) => {
+      currentBuffer.shift();
+      return currentBuffer;
+    });
+  }
+
+  // If buffer gets critically low (less than half of target size), start buffering again
+  // This might happen during network interruptions
+  if (bufferDuration < bufferSizeInSeconds / 2 && buffer.length > 1) {
+    console.log(
+      `Buffer too small: ${bufferDuration.toFixed(1)}s < ${bufferSizeInSeconds / 2}s. Rebuffering...`,
+    );
+    isBuffering.set(true);
+  }
+}
 
 export function connect(objectPositions?: any) {
   isLoading.set(true);
@@ -79,9 +152,23 @@ export function connect(objectPositions?: any) {
         if (!get(receivedFirstFrame)) {
           receivedFirstFrame.set(true);
           isLoading.set(false);
+
+          // Initialize the frame buffer processor when first connected
+          initFrameBufferProcessor();
         }
 
-        await renderView(message.main_view, message.god_view);
+        // Add the frame to the buffer instead of rendering immediately
+        const frameData = {
+          mainView: message.main_view,
+          secondaryView: message.god_view,
+          timestamp: performance.now(),
+        };
+
+        // Update the frame buffer with the new frame
+        frameBuffer.update((buffer) => {
+          buffer.push(frameData);
+          return buffer;
+        });
       } else if (message.type === "reasoning" && message.message) {
         // Handle reasoning messages
         reasoningMessages.update((current) => current + message.message);
@@ -137,6 +224,16 @@ export function disconnect() {
     currentSocket.close();
     socket.set(null);
   }
+
+  // Clear the frame processor interval
+  if (frameProcessorInterval) {
+    window.clearInterval(frameProcessorInterval);
+    frameProcessorInterval = null;
+  }
+
+  // Reset the frame buffer
+  frameBuffer.set([]);
+  isBuffering.set(true);
 
   isLoading.set(false);
   receivedFirstFrame.set(false);

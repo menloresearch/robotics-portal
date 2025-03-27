@@ -133,11 +133,7 @@ class BeatTheDeskSim(SceneAbstract):
                         pos=cam_pos + zoom * (cam_pos - lookat),
                     )
                     main_view, _, _, _ = self.env.cam.render()
-
                     god_view, _, _, _ = self.env.cam_god.render()
-
-                    main_view = main_view[:, :, ::-1]
-                    god_view = god_view[:, :, ::-1]
 
                     processed_message = {
                         "type": "streaming_view",

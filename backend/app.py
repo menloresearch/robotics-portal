@@ -9,7 +9,8 @@ from utils.utils import send_personal_message, check_timeout
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
-from scenes.g1_mall.g1_sim import G1Sim
+from scenes.g1_mall.g1_sim import G1SimMall
+from scenes.g1.g1_sim import G1Sim
 from scenes.desk.desk_sim import BeatTheDeskSim
 from services.AudioService import AudioService
 import os
@@ -99,7 +100,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
 
             elif message_data.get("env") == "g1":
-                scene = G1Sim(
+                scene = G1SimMall(
                     config=message_data.get(
                         "config", default_config()["scenes"].get("g1_mall", {})
                     )

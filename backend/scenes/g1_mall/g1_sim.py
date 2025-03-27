@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 
-class G1Sim(SceneAbstract):
+class G1SimMall(SceneAbstract):
     def __init__(self, config={}):
         super().__init__()
         self.dir_path = os.path.dirname(os.path.realpath(__file__))

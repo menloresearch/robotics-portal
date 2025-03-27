@@ -80,6 +80,5 @@ unitree_ros/
 # anythng with unitree folder
 *unitree_ros/
 __pycache__/
-client.py
 warehouse.obj
 

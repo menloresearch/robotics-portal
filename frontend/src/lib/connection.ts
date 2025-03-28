@@ -98,8 +98,11 @@ export function connect(objectPositions?: any) {
   // Get WebSocket host from environment variable (set in package.json scripts)
   const wsHost = import.meta.env.VITE_WS_HOST || "localhost:8000";
 
-  // Create WebSocket connection
-  const webSocket = new WebSocket(`ws://${wsHost}/ws`);
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+
+  // Create WebSocket connection with appropriate protocol
+  // const webSocket = new WebSocket(`${protocol}//${wsHost}/ws`);
+  const webSocket = new WebSocket(`${protocol}//${wsHost}/ws`);
   socket.set(webSocket);
 
   // Connection opened

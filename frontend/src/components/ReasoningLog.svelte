@@ -2,7 +2,7 @@
   import { reasoningMessages } from "$lib/store";
   import { onMount } from "svelte";
 
-  let isReasoningExpanded = false;
+  let isReasoningExpanded = true;
   let parsedMessages: string = "";
 
   // Subscribe to reasoningMessages to detect changes
@@ -50,7 +50,7 @@
     {#if isReasoningExpanded}
       <div
         id="reasoning-box"
-        class="h-96 bg-gray-700 rounded-md p-3 overflow-y-auto flex-grow transition-all duration-300"
+        class="max-h-[calc(35vh-12rem)] bg-gray-700 rounded-md p-3 overflow-y-auto flex-grow transition-all duration-300"
       >
         {#if $reasoningMessages.length === 0}
           <div class="text-gray-400 italic">Reasoning...</div>

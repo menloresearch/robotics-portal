@@ -17,7 +17,7 @@ def show_byte_image(message):
         # print(f"Image size: {img.shape}")  # Print image dimensions
 
         # Display the image using OpenCV
-        cv2.imshow("Received Image", img)
+        cv2.imshow("Received Image", img[:,:,::-1])
         cv2.waitKey(1) 
 
 # Configuration

@@ -7,7 +7,7 @@
     "dev": "VITE_WS_HOST=localhost:8000 vite dev",
     "pc": "VITE_WS_HOST=192.168.0.20:8000 vite dev",
     "prod": "VITE_WS_HOST=alphaspace.menlo.ai vite dev",
-    "build": "VITE_WS_HOST=alphaspace.menlo.ai vite dev",
+    "build": "VITE_WS_HOST=alphaspace.menlo.ai vite build",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

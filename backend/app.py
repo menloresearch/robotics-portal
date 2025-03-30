@@ -41,8 +41,6 @@ def default_config():
 
 
 # WebSocket endpoint with no external dependencies
-
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     # BUG: reconnecting will create intialisation error
@@ -127,7 +125,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         i += 1
                 print(objects_place)
 
-                scene = BeatTheDeskSim(objects_place)
+                scene = BeatTheDeskSim(objects_place, res)
 
             break
 

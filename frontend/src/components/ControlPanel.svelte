@@ -5,7 +5,7 @@
     isConnected,
     isLoading,
     selectedResolution,
-    bufferSize
+    bufferSize,
   } from "$lib/store";
   import { connect, disconnect, setResolution } from "$lib/connection";
 
@@ -304,7 +304,7 @@
           </select>
         </div>
       </div>
-      
+
       <div class="space-y-2 mt-4">
         <h3 class="text-sm font-medium text-gray-400">Frame Buffer Size</h3>
         <div class="flex flex-col space-y-2">
@@ -396,6 +396,7 @@
   }
 
   input[type="number"] {
+    appearance: textfield;
     -moz-appearance: textfield; /* Firefox */
   }
 </style>

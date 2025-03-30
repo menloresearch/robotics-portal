@@ -275,7 +275,7 @@ export function switchCamera(
   }
 }
 
-export function setResolution(resolution: string) {
+export function setResolution(resolution: number) {
   const currentSocket = get(socket);
   if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
     currentSocket.send(

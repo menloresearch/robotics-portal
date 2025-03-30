@@ -12,6 +12,9 @@ from fastapi import WebSocket
 from config import Config
 from .system_prompt import SYSTEM_PROMPT_WAREHOUSE
 
+def parse_action_robot_in_mall(string):
+    return {"actions":[{"type":"talking"}, {"type":"head_scratch"}]}
+
 
 def parse_json_from_mixed_string(mixed_string):
     """
@@ -177,3 +180,36 @@ async def check_timeout(websocket: WebSocket, last_activity_ref):
             print(f"Closing inactive connection after {idle_seconds} seconds")
             await websocket.close(code=1000, reason="Timeout due to inactivity")
             break
+
+def decode_base64_to_audio(
+    base64_string: str
+) -> bytes:
+    """
+    Decode a base64 string to audio bytes and optionally save to file.
+
+    Args:
+        base64_string (str): Base64 encoded string
+        output_path (Optional[Union[str, Path]]): Path to save the decoded audio file
+
+    Returns:
+        bytes: Decoded audio bytes
+
+    Raises:
+        ValueError: If the base64 string is invalid
+        IOError: If there's an error writing the file
+    """
+    try:
+        audio_bytes = base64.b64decode(base64_string)
+        return audio_bytes
+    except base64.binascii.Error as e:
+        raise ValueError(f"Invalid base64 string: {e}")
+    except IOError as e:
+        raise IOError(f"Error writing audio file: {e}")
+
+def encode_audio_to_base64(byte_data: bytes) -> str:
+
+    try:
+        base64_encoded = base64.b64encode(byte_data).decode('utf-8')
+        return base64_encoded
+    except IOError as e:
+        raise IOError(f"Error reading audio file: {e}")

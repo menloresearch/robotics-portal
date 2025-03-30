@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  tts:
+    container_name: "tts"
+    image: ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2
+    volumes:
+      - ~/.cache/:/root/.cahce/
+      # - ./models/tts:/workspace
+    ports:
+      - "8880:8880"
+    # command: [ "gunicorn", "app:app", "-k", "uvicorn.workers.UvicornWorker", "-w", "3", "-b", "0.0.0.0:3348", "-t", "10"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+  stt:
+    container_name: "stt"
+    build:
+      context: ./models/stt  # Path to the backend folder
+      dockerfile: Dockerfile
+    env_file:
+      - ./models/stt/.env  # Path to your .env file
+    volumes:
+      - ~/.cache/:/root/.cahce/
+      - ./models/stt:/workspace
+    ports:
+      - "3348:3348"
+    command: [ "gunicorn", "app:app", "-k", "uvicorn.workers.UvicornWorker", "-w", "3", "-b", "0.0.0.0:3348", "-t", "10"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+  backend:
+    build:
+      context: ./backend  # Path to the backend folder
+      dockerfile: ./docker/Dockerfile
+    env_file:
+      - ./backend/.env  # Path to your .env file
+    volumes:
+      #- ~/.cache/:/root/.cahce/
+      - /dev/dri:/dev/dri
+      - /tmp/.X11-unix/:/tmp/.X11-unix
+      - ./backend:/workspace
+    ports:
+      - "8000:8000"
+    environment:
+      - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+    command: [ "app:app", "-k", "uvicorn.workers.UvicornWorker", "-w", "8", "-b", "0.0.0.0:8000", "-t", "1000"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]

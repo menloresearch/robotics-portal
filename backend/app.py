@@ -4,21 +4,24 @@ import uvicorn
 import asyncio
 from datetime import datetime
 import logging
-import genesis as gs
+
 from utils.utils import send_personal_message, check_timeout
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from scenes.go2.go2_sim import Go2Sim
+from scenes.g1_mall.g1_sim import G1SimMall
 from scenes.g1.g1_sim import G1Sim
 from scenes.desk.desk_sim import BeatTheDeskSim
+from services.AudioService import AudioService
+import os
 
-# import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
-
+import genesis as gs
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,7 +64,7 @@ async def websocket_endpoint(websocket: WebSocket):
     # Create message queue local to this websocket connection
     message_queue = asyncio.Queue()
     actions_queue = asyncio.Queue()
-
+    audio_service = None
     # Notify about new connection
     await send_personal_message(
         websocket,
@@ -94,13 +97,21 @@ async def websocket_endpoint(websocket: WebSocket):
                         "config", default_config()["scenes"].get("go2", {})
                     )
                 )
-
+                
             elif message_data.get("env") == "g1":
                 scene = G1Sim(
                     config=message_data.get(
                         "config", default_config()["scenes"].get("g1", {})
                     )
                 )
+
+            elif message_data.get("env") == "g1_mall":
+                scene = G1SimMall(
+                    config=message_data.get(
+                        "config", default_config()["scenes"].get("g1_mall", {})
+                    )
+                )
+                audio_service = scene.audio_service
 
             elif message_data.get("env") == "arm-stack":
                 objects = message_data.get("positions")
@@ -147,14 +158,21 @@ async def websocket_endpoint(websocket: WebSocket):
     )
 
     timeout_task = asyncio.create_task(check_timeout(websocket, last_activity))
+    if audio_service:
+        audio_service_task = asyncio.create_task(audio_service.stream_tts(websocket=websocket))
 
     try:
         # Wait for either task to finish (usually due to disconnect)
-        done, pending = await asyncio.wait(
-            [server_task, client_task, timeout_task],
-            return_when=asyncio.FIRST_COMPLETED,
-        )
-
+        if audio_service:
+            done, pending = await asyncio.wait(
+                [server_task, client_task, timeout_task, audio_service_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        else:
+            done, pending = await asyncio.wait(
+                [server_task, client_task, timeout_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
         # Cancel the remaining task
         for task in pending:
             task.cancel()

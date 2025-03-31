@@ -9,7 +9,7 @@ load_dotenv()
 from services.AudioService import AudioService
 audio_service = AudioService()
 audio_service.stt_url = "http://localhost:3348/v1/audio/transcriptions"
-def show_byte_image(message):
+def show_byte_image(message, title):
     nparr = np.frombuffer(message, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)  # Decode as color image
 
@@ -17,7 +17,7 @@ def show_byte_image(message):
         # print(f"Image size: {img.shape}")  # Print image dimensions
 
         # Display the image using OpenCV
-        cv2.imshow("Received Image", img[:,:,::-1])
+        cv2.imshow(title, img[:,:,::-1])
         cv2.waitKey(1) 
 
 # Configuration
@@ -59,7 +59,9 @@ async def websocket_client():
                             print("Robot answer: ", text)
                         elif message.get("type") == "streaming_view":
                             image_byte = decode_base64_to_audio(message["god_view"])
-                            show_byte_image(image_byte)
+                            show_byte_image(image_byte, "god_view")
+                            image_byte = decode_base64_to_audio(message["main_view"])
+                            show_byte_image(image_byte, "main_view")
                         else:
                             # print(message)
                             pass

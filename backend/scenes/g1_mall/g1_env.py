@@ -107,15 +107,15 @@ class G1Env:
         )
         self.cam = self.scene.add_camera(
             res=(640, 480),
-            pos=(-3, 0, 0.3),
-            lookat=(1, 0.0, 0.0),
+            pos=(-3, 0, 3),
+            lookat=(0, 0.0, 2),
             fov=40,
             GUI=False,
         )
         self.cam_first = self.scene.add_camera(
             res=(640, 480),
-            pos=(0.3, 0, 0.3),
-            lookat=(1, 0.0, 0.0),
+            pos=(8, 0, 3),
+            lookat=(0, 0.0, 2),
             fov=40,
             GUI=False,
         )

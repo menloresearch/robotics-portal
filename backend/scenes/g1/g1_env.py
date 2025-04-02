@@ -125,7 +125,7 @@ class G1Env:
 
         self.build_scene_from_config(scene_config)
         self.warehouse = self.scene.add_entity(
-            gs.morphs.Mesh(file='assets/warehouse/warehouse.obj',
+            gs.morphs.Mesh(file='assets/warehouse/warehouse.glb',
                            fixed=True,
                            euler=[90, 0, 0],
                            pos=[0, 0, 0.0],

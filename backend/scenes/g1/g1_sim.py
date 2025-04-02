@@ -98,9 +98,9 @@ class G1Sim(SceneAbstract):
 
     def transform(self, action, amplitude):
         if action == 1:  # left
-            amplitude = amplitude * 100 / 45
+            amplitude = amplitude * 52 / 45
         elif action == 0:  # right
-            amplitude = amplitude * 90 / 45
+            amplitude = amplitude * 52 / 45
         elif action == 3:
             amplitude = amplitude * 120
         return amplitude
@@ -205,11 +205,11 @@ class G1Sim(SceneAbstract):
                                     )
                                 elif action == 1:
                                     obs, _, rews, dones, infos = self.env.step(
-                                        actions, y=0.5
+                                        actions, angle=0.2
                                     )
                                 elif action == 0:
                                     obs, _, rews, dones, infos = self.env.step(
-                                        actions, y=-0.5
+                                        actions, angle=-0.2
                                     )
                                 else:
                                     obs, _, rews, dones, infos = self.env.step(actions)

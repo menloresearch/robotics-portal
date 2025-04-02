@@ -82,3 +82,8 @@ unitree_ros/
 __pycache__/
 warehouse.obj
 
+warehouse.glb
+
+mall2_small.glb
+mall.glb
+*.glb

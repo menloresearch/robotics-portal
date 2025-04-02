@@ -8,19 +8,13 @@ import pickle
 from scenes.scene_abstract import SceneAbstract
 from datetime import datetime
 from scenes.g1_mall.g1_env import G1Env
-from rsl_rl.runners import OnPolicyRunner
 from utils.utils import (
     encode_numpy_array,
     send_personal_message,
-    send_openai_request,
-    parse_json_from_mixed_string,
     decode_base64_to_audio,
-    encode_audio_to_base64,
-    parse_action_robot_in_mall
+    parse_action_robot_in_mall,
 )
-from utils.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_WAREHOUSE
 import logging
-from config import Config
 from services.LLMService import AsyncOpenAIChatCompletionService
 from services.AudioService import AudioService
 
@@ -40,10 +34,9 @@ class G1SimMall(SceneAbstract):
     def load_policy(self, config):
         model_config = config.get("models", {}).get("rl", {})
 
-        log_dir = model_config.get(
-            "walking", "scenes/g1/checkpoints/g1-walking")
-        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = pickle.load(
-            open(log_dir+"/cfgs.pkl", "rb")
+        log_dir = model_config.get("walking", "scenes/g1/checkpoints/g1-walking")
+        env_cfg, obs_cfg, reward_cfg, command_cfg, train_cfg, domain_rand_cfg = (
+            pickle.load(open(log_dir + "/cfgs.pkl", "rb"))
         )
         reward_cfg["reward_scales"] = {}
 
@@ -55,7 +48,7 @@ class G1SimMall(SceneAbstract):
             command_cfg=command_cfg,
             domain_rand_cfg=domain_rand_cfg,
             show_viewer=False,
-            scene_config=config
+            scene_config=config,
         )
 
         return
@@ -76,38 +69,42 @@ class G1SimMall(SceneAbstract):
             obs, _, rews, dones, infos = env.step(action)
         return obs
 
-    async def handle_voice_command(self, message_data: dict, websocket: WebSocket, client_id: str, actions_queue: asyncio.Queue):
+    async def handle_voice_command(
+        self,
+        message_data: dict,
+        websocket: WebSocket,
+        client_id: str,
+        actions_queue: asyncio.Queue,
+    ):
         if message_data.get("content"):
             final_answer = ""
             audio_byte_input = decode_base64_to_audio(message_data["content"])
             content = await self.audio_service.stt(audio_data=audio_byte_input)
             robot_position = str(self.env.position)
             content += ". Robot is at the position " + robot_position
-            async for chunk in self.llm_service.chat_completion_stream(message_content=content):
+            async for chunk in self.llm_service.chat_completion_stream(
+                message_content=content
+            ):
                 await send_personal_message(
                     websocket,
                     json.dumps(
                         {
                             "type": "reasoning",
-                            "message": chunk["choices"][0]["delta"].get(
-                                "content", ""
-                            ),
+                            "message": chunk["choices"][0]["delta"].get("content", ""),
                         }
                     ),
                     client_id,
                 )
                 chunk_content = chunk["choices"][0]["delta"].get("content", "")
                 if chunk_content in "GOODBYE" and chunk_content != "":
-                    await actions_queue.put(
-                        "greeting"
-                    )
+                    await actions_queue.put("greeting")
                     await send_personal_message(
                         websocket,
                         json.dumps(
                             {
                                 "type": "output",
                                 "message": "greeting",
-                                "signal": chunk_content
+                                "signal": chunk_content,
                             }
                         ),
                         client_id,
@@ -121,7 +118,7 @@ class G1SimMall(SceneAbstract):
                             {
                                 "type": "output",
                                 "message": "head_scratch",
-                                "signal": chunk_content
+                                "signal": chunk_content,
                             }
                         ),
                         client_id,
@@ -150,11 +147,7 @@ class G1SimMall(SceneAbstract):
                 try:
                     actions = actions["actions"]
                     for action in actions:
-                        await actions_queue.put(
-
-                            action["type"]
-
-                        )
+                        await actions_queue.put(action["type"])
 
                     await send_personal_message(
                         websocket,
@@ -170,36 +163,40 @@ class G1SimMall(SceneAbstract):
                     print(e)
                     pass
 
-    async def handle_text_command(self, message_data: dict, websocket: WebSocket, client_id: str, actions_queue: asyncio.Queue):
+    async def handle_text_command(
+        self,
+        message_data: dict,
+        websocket: WebSocket,
+        client_id: str,
+        actions_queue: asyncio.Queue,
+    ):
         final_answer = ""
         content = message_data.get("content", "")
         robot_position = str(self.env.position)
         content += ". Robot is at the position " + robot_position
-        async for chunk in self.llm_service.chat_completion_stream(message_content=content):
+        async for chunk in self.llm_service.chat_completion_stream(
+            message_content=content
+        ):
             await send_personal_message(
                 websocket,
                 json.dumps(
                     {
                         "type": "reasoning",
-                        "message": chunk["choices"][0]["delta"].get(
-                            "content", ""
-                        ),
+                        "message": chunk["choices"][0]["delta"].get("content", ""),
                     }
                 ),
                 client_id,
             )
             chunk_content = chunk["choices"][0]["delta"].get("content", "")
             if chunk_content in "GOODBYE" and chunk_content != "":
-                await actions_queue.put(
-                    "greeting"
-                )
+                await actions_queue.put("greeting")
                 await send_personal_message(
                     websocket,
                     json.dumps(
                         {
                             "type": "output",
                             "message": "greeting",
-                            "signal": chunk_content
+                            "signal": chunk_content,
                         }
                     ),
                     client_id,
@@ -213,7 +210,7 @@ class G1SimMall(SceneAbstract):
                         {
                             "type": "output",
                             "message": "head_scratch",
-                            "signal": chunk_content
+                            "signal": chunk_content,
                         }
                     ),
                     client_id,
@@ -237,11 +234,7 @@ class G1SimMall(SceneAbstract):
             try:
                 actions = actions["actions"]
                 for action in actions:
-                    await actions_queue.put(
-
-                        action["type"]
-
-                    )
+                    await actions_queue.put(action["type"])
 
                 await send_personal_message(
                     websocket,
@@ -264,7 +257,6 @@ class G1SimMall(SceneAbstract):
         client_id: str,
         websocket: WebSocket,
     ):
-
         # obs, _ = self.env.reset()
         main = 0
         zoom = 0
@@ -333,7 +325,6 @@ class G1SimMall(SceneAbstract):
                                 steps = 80
                                 self.env._receive_customer(step)
                             else:
-
                                 if action == "talking":
                                     steps = 80
                                     self.env._receive_customer(step)
@@ -383,8 +374,7 @@ class G1SimMall(SceneAbstract):
             logger.error(f"Server processor for client {client_id} cancelled")
             return
         except Exception as e:
-            logger.error(
-                f"Server processor error for client {client_id}: {str(e)}")
+            logger.error(f"Server processor error for client {client_id}: {str(e)}")
             return
 
     async def client_handler(
@@ -409,9 +399,13 @@ class G1SimMall(SceneAbstract):
 
                 # Add client message to processing queue
                 if message_data.get("type") == "command":
-                    await self.handle_text_command(message_data, websocket, client_id, actions_queue)
+                    await self.handle_text_command(
+                        message_data, websocket, client_id, actions_queue
+                    )
                 elif message_data.get("type") == "voice":
-                    await self.handle_voice_command(message_data, websocket, client_id, actions_queue)
+                    await self.handle_voice_command(
+                        message_data, websocket, client_id, actions_queue
+                    )
                 else:
                     await message_queue.put(message_data)
                 last_activity = datetime.now()
@@ -421,6 +415,5 @@ class G1SimMall(SceneAbstract):
         except asyncio.CancelledError:
             logger.info(f"Client handler for client {client_id} cancelled")
         except Exception as e:
-            logger.error(
-                f"Client handler error for client {client_id}: {str(e)}")
+            logger.error(f"Client handler error for client {client_id}: {str(e)}")
             raise

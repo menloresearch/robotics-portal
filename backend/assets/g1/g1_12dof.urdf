@@ -87,7 +87,7 @@
     <parent link="pelvis"/>
     <child link="left_hip_pitch_link"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-2.5307" upper="2.8798" effort="88" velocity="32"/>
+    <limit lower="-1.0" upper="1.0" effort="88" velocity="32"/>
   </joint>
   <link name="left_hip_roll_link">
     <inertial>
@@ -116,7 +116,7 @@
     <parent link="left_hip_pitch_link"/>
     <child link="left_hip_roll_link"/>
     <axis xyz="1 0 0"/>
-    <limit lower="-0.5236" upper="2.9671" effort="139" velocity="20"/>
+    <limit lower="-0.2" upper="0.6" effort="139" velocity="20"/>
   </joint>
   <link name="left_hip_yaw_link">
     <inertial>
@@ -145,7 +145,7 @@
     <parent link="left_hip_roll_link"/>
     <child link="left_hip_yaw_link"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-2.7576" upper="2.7576" effort="88" velocity="32"/>
+    <limit lower="-0.2" upper="0.2" effort="88" velocity="32"/>
   </joint>
   <link name="left_knee_link">
     <inertial>
@@ -279,7 +279,7 @@
     <parent link="pelvis"/>
     <child link="right_hip_pitch_link"/>
     <axis xyz="0 1 0"/>
-    <limit lower="-2.5307" upper="2.8798" effort="88" velocity="32"/>
+    <limit lower="-1.0" upper="1.0" effort="88" velocity="32"/>
   </joint>
   <link name="right_hip_roll_link">
     <inertial>
@@ -308,7 +308,7 @@
     <parent link="right_hip_pitch_link"/>
     <child link="right_hip_roll_link"/>
     <axis xyz="1 0 0"/>
-    <limit lower="-2.9671" upper="0.5236" effort="139" velocity="20"/>
+    <limit lower="-0.6" upper="0.2" effort="139" velocity="20"/>
   </joint>
   <link name="right_hip_yaw_link">
     <inertial>
@@ -337,7 +337,7 @@
     <parent link="right_hip_roll_link"/>
     <child link="right_hip_yaw_link"/>
     <axis xyz="0 0 1"/>
-    <limit lower="-2.7576" upper="2.7576" effort="88" velocity="32"/>
+    <limit lower="-0.2" upper="0.2" effort="88" velocity="32"/>
   </joint>
   <link name="right_knee_link">
     <inertial>
@@ -677,7 +677,7 @@
     </collision>
   </link>
   <joint name="left_elbow_joint" type="fixed">
-    <origin xyz="0.015783 0 -0.080518" rpy="0 0 0"/>
+    <origin xyz="0.015783 0 -0.080518" rpy="0 0.8 0"/>
     <parent link="left_shoulder_yaw_link"/>
     <child link="left_elbow_link"/>
     <axis xyz="0 1 0"/>
@@ -822,7 +822,7 @@
     </collision>
   </link>
   <joint name="right_elbow_joint" type="fixed">
-    <origin xyz="0.015783 0 -0.080518" rpy="0 0 0"/>
+    <origin xyz="0.015783 0 -0.080518" rpy="0 0.8 0"/>
     <parent link="right_shoulder_yaw_link"/>
     <child link="right_elbow_link"/>
     <axis xyz="0 1 0"/>

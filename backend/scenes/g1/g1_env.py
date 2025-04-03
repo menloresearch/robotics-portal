@@ -158,6 +158,37 @@ class G1Env:
         self.robot.set_dofs_kv([self.env_cfg["kd"]] *
                                self.num_actions, self.motor_dofs)
 
+        # joint setup
+        # lower body joints
+        leg_jnt_names = [
+            'left_hip_pitch_joint', # 6 DoFs left leg
+            'left_hip_roll_joint',
+            'left_hip_yaw_joint',
+            'left_knee_joint',
+            'left_ankle_pitch_joint',
+            'left_ankle_roll_joint',
+            'right_hip_pitch_joint', # 6 DoFs right leg
+            'right_hip_roll_joint',
+            'right_hip_yaw_joint',
+            'right_knee_joint',
+            'right_ankle_pitch_joint',
+            'right_ankle_roll_joint',
+        ]
+        leg_dofs_idx = [self.robot.get_joint(name).dof_idx_local for name in leg_jnt_names]
+
+        # PD control parameters
+        leg_kp = 1000
+        leg_kd = 200
+        self.robot.set_dofs_kp([leg_kp] * len(leg_jnt_names), leg_dofs_idx)
+        self.robot.set_dofs_kv([leg_kd] * len(leg_jnt_names), leg_dofs_idx)
+
+        # set force range for safety
+        lower_bound_force = -150
+        upper_bound_force = 150
+        self.robot.set_dofs_force_range([lower_bound_force] * len(leg_jnt_names), 
+                                [upper_bound_force] * len(leg_jnt_names), 
+                                leg_dofs_idx)
+
         # prepare reward functions and multiply reward scales by dt
         self.reward_functions, self.episode_sums = dict(), dict()
         for name in self.reward_scales.keys():

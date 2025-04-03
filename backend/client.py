@@ -38,7 +38,8 @@ async def websocket_client():
             # Send initialization message
             await websocket.send(json.dumps(INIT_MESSAGE))
             
-            await websocket.send(json.dumps({"type":"voice", "content":audio_question}))
+            # await websocket.send(json.dumps({"type":"voice", "content":audio_question}))
+            await websocket.send(json.dumps({"type":"command", "content": "can I play golf?"}))
             print(f"Sent initialization message: {INIT_MESSAGE}")
 
             # Listen for incoming messages in a loop
@@ -63,7 +64,7 @@ async def websocket_client():
                             image_byte = decode_base64_to_audio(message["main_view"])
                             show_byte_image(image_byte, "main_view")
                         else:
-                            # print(message)
+                            print(message)
                             pass
                             
                     except json.JSONDecodeError:

@@ -96,12 +96,42 @@ class G1SimMall(SceneAbstract):
                     ),
                     client_id,
                 )
-
-                final_answer += chunk["choices"][0]["delta"].get(
-                    "content", "")
+                chunk_content = chunk["choices"][0]["delta"].get("content", "")
+                if chunk_content in "GOODBYE" and chunk_content != "":
+                    await actions_queue.put(
+                        "greeting"
+                    )
+                    await send_personal_message(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "output",
+                                "message": "greeting",
+                                "signal": chunk_content
+                            }
+                        ),
+                        client_id,
+                    )
+                    continue
+                elif chunk_content in "UNKNOWN" and chunk_content != "":
+                    await actions_queue.put("head_scratch")
+                    await send_personal_message(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "output",
+                                "message": "head_scratch",
+                                "signal": chunk_content
+                            }
+                        ),
+                        client_id,
+                    )
+                    continue
+                final_answer += chunk_content
                 await self.audio_service.llm_text_queue.put(chunk)
                 # self.audio_service.llm_text_queue.task_done()
-            await self.audio_service.llm_text_queue.put(None) # send end signal
+            # send end signal
+            await self.audio_service.llm_text_queue.put(None)
             # self.audio_service.llm_text_queue.task_done()
             actions = parse_action_robot_in_mall(final_answer)
             print(final_answer)
@@ -158,9 +188,38 @@ class G1SimMall(SceneAbstract):
                 ),
                 client_id,
             )
-
-            final_answer += chunk["choices"][0]["delta"].get(
-                "content", "")
+            chunk_content = chunk["choices"][0]["delta"].get("content", "")
+            if chunk_content in "GOODBYE" and chunk_content != "":
+                await actions_queue.put(
+                    "greeting"
+                )
+                await send_personal_message(
+                    websocket,
+                    json.dumps(
+                        {
+                            "type": "output",
+                            "message": "greeting",
+                            "signal": chunk_content
+                        }
+                    ),
+                    client_id,
+                )
+                continue
+            elif chunk_content in "UNKNOWN" and chunk_content != "":
+                await actions_queue.put("head_scratch")
+                await send_personal_message(
+                    websocket,
+                    json.dumps(
+                        {
+                            "type": "output",
+                            "message": "head_scratch",
+                            "signal": chunk_content
+                        }
+                    ),
+                    client_id,
+                )
+                continue
+            final_answer += chunk_content
         actions = parse_action_robot_in_mall(final_answer)
         print(final_answer)
         if actions is None:

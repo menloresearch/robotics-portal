@@ -1,3 +1,10 @@
+# In src/portal/server.py
+import sys
+import os
+
+# Add the project root to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
 from fastapi import FastAPI, WebSocket
 import json
 import uvicorn
@@ -5,14 +12,15 @@ import asyncio
 from datetime import datetime
 import logging
 
-from utils.utils import send_personal_message, check_timeout
+from package.src.portal.utils.utils import send_personal_message, check_timeout
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from scenes.go2.go2_sim import Go2Sim
-from scenes.g1_mall.g1_sim import G1SimMall
-from scenes.g1.g1_sim import G1Sim
-from scenes.desk.desk_sim import BeatTheDeskSim
-import os
+
+# from scenes.go2.go2_sim import Go2Sim
+# from scenes.g1_mall.g1_sim import G1SimMall
+# from scenes.g1.g1_sim import G1Sim
+from package.src.portal.desk.adapter import BeatTheDeskSim
+# import os
 
 import genesis as gs
 
@@ -91,29 +99,29 @@ async def websocket_endpoint(websocket: WebSocket):
         ]
 
         if message_data.get("type") == "env":
-            if message_data.get("env") == "go2":
-                scene = Go2Sim(
-                    config=message_data.get(
-                        "config", default_config()["scenes"].get("go2", {})
-                    )
-                )
+            # if message_data.get("env") == "go2":
+            #     scene = Go2Sim(
+            #         config=message_data.get(
+            #             "config", default_config()["scenes"].get("go2", {})
+            #         )
+            #     )
+            #
+            # elif message_data.get("env") == "g1":
+            #     scene = G1Sim(
+            #         config=message_data.get(
+            #             "config", default_config()["scenes"].get("g1", {})
+            #         )
+            #     )
+            #
+            # elif message_data.get("env") == "g1_mall":
+            #     scene = G1SimMall(
+            #         config=message_data.get(
+            #             "config", default_config()["scenes"].get("g1_mall", {})
+            #         )
+            #     )
+            #     audio_service = scene.audio_service
 
-            elif message_data.get("env") == "g1":
-                scene = G1Sim(
-                    config=message_data.get(
-                        "config", default_config()["scenes"].get("g1", {})
-                    )
-                )
-
-            elif message_data.get("env") == "g1_mall":
-                scene = G1SimMall(
-                    config=message_data.get(
-                        "config", default_config()["scenes"].get("g1_mall", {})
-                    )
-                )
-                audio_service = scene.audio_service
-
-            elif message_data.get("env") == "arm-stack":
+            if message_data.get("env") == "arm-stack":
                 objects = message_data.get("positions")
                 res = message_data.get("resolution")
                 i = 0
@@ -198,5 +206,7 @@ async def websocket_endpoint(websocket: WebSocket):
     gs.destroy()
 
 
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
+def run():
+    uvicorn.run(
+        "package.src.portal.server:app", host="0.0.0.0", port=8000, reload=False
+    )

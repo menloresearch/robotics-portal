@@ -12,14 +12,15 @@ import asyncio
 from datetime import datetime
 import logging
 
-from package.src.portal.utils.utils import send_personal_message, check_timeout
+from .utils.utils import send_personal_message, check_timeout
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 # from scenes.go2.go2_sim import Go2Sim
 # from scenes.g1_mall.g1_sim import G1SimMall
 # from scenes.g1.g1_sim import G1Sim
-from package.src.portal.desk.adapter import BeatTheDeskSim
+# from .desk.adapter import BeatTheDeskSim
+from scenes.desk.adapter import BeatTheDeskSim
 # import os
 
 import genesis as gs

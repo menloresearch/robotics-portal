@@ -6,12 +6,12 @@ from datetime import datetime
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
 
-from utils.utils import (
+from package.src.portal.utils.utils import (
     encode_numpy_array,
     send_personal_message,
 )
 from scenes.scene_abstract import SceneAbstract
-from scenes.desk.desk_env import BeatTheDeskEnv
+from scenes.desk.scene import BeatTheDeskEnv
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)

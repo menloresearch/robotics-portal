@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { mainCanvas, mainCtx, isLoading, isConnected } from "$lib/store";
+  import { mainCanvas, mainCtx, isLoading, isConnected, isRunning } from "$lib/store";
   import { handleZoom } from "$lib/interacts";
   import { browser } from "$app/environment";
 
@@ -66,7 +66,7 @@
         id="imageDisplay"
         class="absolute top-0 left-0 w-full h-full object-cover cursor-grab active:cursor-grabbing"
       ></canvas>
-      {#if $isLoading && $isConnected}
+      {#if $isLoading && $isConnected && $isRunning}
         <div
           class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70"
         >

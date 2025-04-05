@@ -9,13 +9,8 @@ export const isLoading = writable<boolean>(false);
 export const receivedFirstFrame = writable<boolean>(false);
 
 // Environment settings
-export const selectedEnvironment = writable<string>("g1");
-export const environments = writable([
-  { id: "g1", name: "Unitree G1" },
-  { id: "go2", name: "Unitree Go2" },
-  { id: "arm-stack", name: "Arm Stack Cube" },
-  { id: "arm-place", name: "Arm Place Cube" },
-]);
+export const selectedScene = writable<string>("");
+export const scenes = writable([]);
 
 // Telemetry data
 export const frameCount = writable<number>(0);
@@ -34,7 +29,6 @@ export interface FrameData {
 }
 export const frameBuffer = writable<FrameData[]>([]);
 export const isBuffering = writable<boolean>(true);
-export const bufferSize = writable<number>(2); // Buffer size in seconds
 
 // Canvas references
 export const mainCanvas = writable<HTMLCanvasElement | null>(null);
@@ -45,3 +39,6 @@ export const secondaryCtx = writable<CanvasRenderingContext2D | null>(null);
 // Instruction and reasoning
 export const instruction = writable<string>("");
 export const reasoningMessages = writable<string>("");
+
+// Robot state
+export const isRunning = writable<boolean>(false);

@@ -6,7 +6,8 @@ import {
   isLoading,
   receivedFirstFrame,
   reasoningMessages,
-  selectedEnvironment,
+  selectedScene,
+  scenes,
   selectedResolution,
   mainCtx,
   mainCanvas,
@@ -14,8 +15,8 @@ import {
   secondaryCanvas,
   frameSize,
   frameBuffer,
-  bufferSize,
   isBuffering,
+  isRunning,
 } from "./store";
 import { get } from "svelte/store";
 import { renderView } from "./renderView";
@@ -38,7 +39,7 @@ function initFrameBufferProcessor() {
 // Process frames from the buffer
 function processFrameBuffer() {
   const buffer = get(frameBuffer);
-  const bufferSizeInSeconds = get(bufferSize);
+  const bufferSizeInSeconds = 2; // Use fixed 2 second buffer
 
   if (buffer.length === 0) {
     return; // No frames to process
@@ -101,35 +102,14 @@ export function connect(objectPositions?: any) {
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 
   // Create WebSocket connection with appropriate protocol
-  // const webSocket = new WebSocket(`${protocol}//${wsHost}/ws`);
   const webSocket = new WebSocket(`${protocol}//${wsHost}/ws`);
   socket.set(webSocket);
 
   // Connection opened
   webSocket.addEventListener("open", () => {
-    console.log("Connected to WebSocket server");
-    connectionStatus.set("Connected");
-    statusColor.set("text-green-500");
-    isConnected.set(true);
-
-    // Send environment selection message with object positions if provided
-    const message: any = {
-      type: "env",
-      env: get(selectedEnvironment),
-      resolution: get(selectedResolution),
-    };
-
-    // Add positions data if provided
-    if (objectPositions) {
-      // Convert object positions to array format with values divided by 100
-      message.positions = {};
-      for (const color in objectPositions) {
-        const obj = objectPositions[color];
-        message.positions[color] = [obj.x / 100, obj.y / 100, obj.z / 100];
-      }
-    }
-
-    webSocket.send(JSON.stringify(message));
+    console.log("WebSocket connection opened");
+    // Don't send environment message here anymore
+    // It will be sent when the Run button is clicked
   });
 
   // Listen for messages
@@ -141,8 +121,18 @@ export function connect(objectPositions?: any) {
       // Calculate message size (approximate for text data)
       frameSize.set((event.data.length / 1024).toFixed(2));
 
-      if (message.type === "connection_established" && message.content) {
-        console.info(`Connection status: ${message.content}`);
+      if (message.type === "connection_established") {
+        let content = JSON.parse(message.content);
+        console.info("Content: ", content);
+        scenes.set(content.scenes);
+        selectedScene.set(content.scenes[0].id);
+
+        // Set connection status when we receive the connection_established message
+        console.log("Connected to server successfully");
+        connectionStatus.set("Connected");
+        statusColor.set("text-green-500");
+        isConnected.set(true);
+        isLoading.set(false);
       }
 
       if (message.type === "resolution" && message.resolution) {
@@ -151,13 +141,15 @@ export function connect(objectPositions?: any) {
 
       // Handle different message types
       if (message.type === "streaming_view") {
-        // If this is the first frame, stop the loading state
+        // If this is the first frame we're receiving
         if (!get(receivedFirstFrame)) {
           receivedFirstFrame.set(true);
-          isLoading.set(false);
+          isLoading.set(false); // Stop loading indicator once frames start arriving
 
-          // Initialize the frame buffer processor when first connected
-          initFrameBufferProcessor();
+          // Initialize the frame buffer processor if it's not already initialized
+          if (!frameProcessorInterval) {
+            initFrameBufferProcessor();
+          }
         }
 
         // Add the frame to the buffer instead of rendering immediately
@@ -209,6 +201,7 @@ export function connect(objectPositions?: any) {
     statusColor.set("text-red-500");
     isConnected.set(false);
     isLoading.set(false);
+    isRunning.set(false);
   });
 
   // Connection error
@@ -218,6 +211,7 @@ export function connect(objectPositions?: any) {
     statusColor.set("text-red-500");
     isConnected.set(false);
     isLoading.set(false);
+    isRunning.set(false);
   });
 }
 
@@ -301,6 +295,80 @@ export function sendCommand(commandText: string) {
       }),
     );
     reasoningMessages.set("");
+    return true;
+  }
+  return false;
+}
+
+export function toggleRunning(objectPositions?: any) {
+  const currentValue = get(isRunning);
+  const newValue = !currentValue;
+
+  const currentSocket = get(socket);
+  if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
+    // If starting the simulation
+    if (newValue) {
+      isLoading.set(true); // Show loading indicator until frames arrive
+      receivedFirstFrame.set(false); // Reset first frame status
+
+      // Initialize frame buffer processor if needed
+      if (!frameProcessorInterval) {
+        initFrameBufferProcessor();
+      }
+
+      // First send environment selection message (previously sent on connection)
+      const envMessage: any = {
+        type: "env",
+        env: get(selectedScene),
+        resolution: get(selectedResolution),
+      };
+
+      // Add positions data if provided
+      if (objectPositions) {
+        // Convert object positions to array format with values divided by 100
+        envMessage.positions = {};
+        for (const color in objectPositions) {
+          const obj = objectPositions[color];
+          envMessage.positions[color] = [obj.x / 100, obj.y / 100, obj.z / 100];
+        }
+      }
+
+      // Send environment configuration first
+      currentSocket.send(JSON.stringify(envMessage));
+      console.log("Sent environment configuration:", envMessage);
+
+      // Then send the run command
+      currentSocket.send(
+        JSON.stringify({
+          type: "run_state",
+          running: true,
+        }),
+      );
+    } else {
+      // If stopping the simulation
+      // Clear the loading state immediately
+      isLoading.set(false);
+
+      // Clear the frame buffer
+      frameBuffer.set([]);
+      isBuffering.set(true);
+
+      // Clear MainView's loading overlay as well by setting receivedFirstFrame to true
+      receivedFirstFrame.set(true);
+
+      // Send stop command
+      currentSocket.send(
+        JSON.stringify({
+          type: "run_state",
+          running: false,
+        }),
+      );
+    }
+
+    // Update running state
+    isRunning.set(newValue);
+
+    console.log(`Robot ${newValue ? "started" : "stopped"}`);
     return true;
   }
   return false;

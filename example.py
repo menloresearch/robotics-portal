@@ -1,4 +1,4 @@
-from package.src.portal.server import Server
+from portal.server import Server
 from scenes.desk.simulation import Simulation
 import uvicorn
 from fastapi import FastAPI

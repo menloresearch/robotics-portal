@@ -3,9 +3,7 @@ import aiohttp
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
 
-from package.src.portal.utils.utils import (
-    encode_numpy_array,
-)
+from portal.utils import encode_numpy_array
 from scenes.desk.scene import Scene
 
 

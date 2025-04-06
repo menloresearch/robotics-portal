@@ -23,72 +23,22 @@ import { renderView } from "./renderView";
 
 let frameProcessorInterval: number | null = null;
 
-// Process frames from the buffer at regular intervals
+// Process frames in real-time without buffering
 function initFrameBufferProcessor() {
   // Clear any existing interval
   if (frameProcessorInterval) {
     window.clearInterval(frameProcessorInterval);
+    frameProcessorInterval = null;
   }
-
-  // Start a new interval to process frames
-  frameProcessorInterval = window.setInterval(() => {
-    processFrameBuffer();
-  }, 16); // ~60fps processing rate
+  
+  // We no longer need a frame processor interval as frames are rendered immediately
+  // This function is kept for compatibility but doesn't set up any interval
+  console.log("Real-time rendering enabled - no frame buffer");
 }
 
-// Process frames from the buffer
+// This function is no longer used but kept for compatibility
 function processFrameBuffer() {
-  const buffer = get(frameBuffer);
-  const bufferSizeInSeconds = 2; // Use fixed 2 second buffer
-
-  if (buffer.length === 0) {
-    return; // No frames to process
-  }
-
-  // Calculate current buffer duration
-  const oldestFrameTime = buffer[0].timestamp;
-  const newestFrameTime = buffer[buffer.length - 1].timestamp;
-  const bufferDuration = (newestFrameTime - oldestFrameTime) / 1000; // in seconds
-
-  // If still in initial buffering phase
-  if (get(isBuffering)) {
-    // Check if we've accumulated enough frames (bufferSizeInSeconds worth)
-    if (bufferDuration >= bufferSizeInSeconds) {
-      console.log(
-        `Buffer filled with ${buffer.length} frames (${bufferDuration.toFixed(1)}s). Starting playback.`,
-      );
-      isBuffering.set(false);
-    } else {
-      // Still filling initial buffer, don't render yet
-      return;
-    }
-  }
-
-  // We want to maintain the buffer at our target size
-  // Only display a frame if we have more than our target buffer
-  // This ensures we keep ~bufferSizeInSeconds of frames in the buffer at all times
-  if (bufferDuration > bufferSizeInSeconds) {
-    // Get the oldest frame from the buffer
-    const oldestFrame = buffer[0];
-
-    // Render the oldest frame
-    renderView(oldestFrame.mainView, oldestFrame.secondaryView);
-
-    // Remove only the rendered frame from the buffer
-    frameBuffer.update((currentBuffer) => {
-      currentBuffer.shift();
-      return currentBuffer;
-    });
-  }
-
-  // If buffer gets critically low (less than half of target size), start buffering again
-  // This might happen during network interruptions
-  if (bufferDuration < bufferSizeInSeconds / 2 && buffer.length > 1) {
-    console.log(
-      `Buffer too small: ${bufferDuration.toFixed(1)}s < ${bufferSizeInSeconds / 2}s. Rebuffering...`,
-    );
-    isBuffering.set(true);
-  }
+  // No-op: We're rendering frames immediately as they arrive
 }
 
 export function connect(objectPositions?: any) {
@@ -145,25 +95,25 @@ export function connect(objectPositions?: any) {
         if (!get(receivedFirstFrame)) {
           receivedFirstFrame.set(true);
           isLoading.set(false); // Stop loading indicator once frames start arriving
-
-          // Initialize the frame buffer processor if it's not already initialized
-          if (!frameProcessorInterval) {
-            initFrameBufferProcessor();
-          }
+          isBuffering.set(false); // Make sure buffering is disabled
+          
+          // Call init once to ensure any previous intervals are cleared
+          initFrameBufferProcessor();
         }
 
-        // Add the frame to the buffer instead of rendering immediately
+        // Render the frame immediately when it arrives
+        renderView(message.main_view, message.god_view);
+        
+        // We no longer buffer frames, but keep timestamp for telemetry
         const frameData = {
           mainView: message.main_view,
           secondaryView: message.god_view,
           timestamp: performance.now(),
         };
-
-        // Update the frame buffer with the new frame
-        frameBuffer.update((buffer) => {
-          buffer.push(frameData);
-          return buffer;
-        });
+        
+        // For telemetry purposes, we still update the buffer with the latest frame
+        // but we only keep the most recent frame
+        frameBuffer.set([frameData]);
       } else if (message.type === "reasoning" && message.message) {
         // Handle reasoning messages
         reasoningMessages.update((current) => current + message.message);
@@ -311,15 +261,10 @@ export function toggleRunning(objectPositions?: any) {
       isLoading.set(true); // Show loading indicator until frames arrive
       receivedFirstFrame.set(false); // Reset first frame status
 
-      // Initialize frame buffer processor if needed
-      if (!frameProcessorInterval) {
-        initFrameBufferProcessor();
-      }
-
       // First send environment selection message (previously sent on connection)
       const envMessage: any = {
-        type: "env",
-        env: get(selectedScene),
+        type: "scene",
+        scene: get(selectedScene),
         resolution: get(selectedResolution),
       };
 

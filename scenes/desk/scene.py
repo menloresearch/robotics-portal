@@ -1,37 +1,38 @@
 import genesis as gs
 import numpy as np
-import logging
+
+from .config import (
+    KP,
+    KV,
+    FORCE_RANGE,
+    INIT_ARM_DOFS,
+    INIT_FINGER_DOFS,
+    ARM_JOINT_NAMES,
+    FINGER_JOINT_NAMES,
+    COLORS,
+    CAMERA_CONFIGS,
+    OBJECT_SIZES,
+)
 
 
-logging.basicConfig(level=logging.ERROR)
-logger = logging.getLogger(__name__)
+class Scene:
+    def __init__(self, res) -> None:
+        # Config robot
+        self.kp = KP
+        self.kv = KV
+        self.force_range = FORCE_RANGE
+        self.init_arm_dofs = INIT_ARM_DOFS
+        self.init_finger_dofs = INIT_FINGER_DOFS
+        self.arm_jnt_names = ARM_JOINT_NAMES
+        self.finger_jnt_names = FINGER_JOINT_NAMES
 
-
-class BeatTheDeskEnv:
-    def __init__(self, objects, res) -> None:
-        self.kp = [4500, 4500, 3500, 3500, 2000, 2000, 2000, 100, 100]
-        self.kv = [450, 450, 350, 350, 200, 200, 200, 10, 10]
-        self.force_range = [
-            [-87, -87, -87, -87, -12, -12, -12, -100, -100],
-            [87, 87, 87, 87, 12, 12, 12, 100, 100],
-        ]
-        self.init_arm_dofs = [0, 0, 0, 0, 0, 0, 0]
-        self.init_finger_dofs = [0.1, 0.1]
         self.cubes = []
 
-        self.arm_jnt_names = [
-            "joint1",
-            "joint2",
-            "joint3",
-            "joint4",
-            "joint5",
-            "joint6",
-            "joint7",
-        ]
-
-        self.finger_jnt_names = [
-            "finger_joint1",
-            "finger_joint2",
+        self.objects_stack = [
+            {"red-cube": [0.4, 0.4, 0]},
+            {"black-cube": [0.4, 0.7, 0]},
+            {"green-cube": [0.7, 0.4, 0]},
+            {"purple-cube": [0.7, 0.7, 0]},
         ]
 
         self.scene = gs.Scene(
@@ -44,15 +45,16 @@ class BeatTheDeskEnv:
                 camera_fov=30,
                 max_FPS=30,
             ),
+            rigid_options=gs.options.RigidOptions(max_collision_pairs=100),
             show_viewer=False,
             show_FPS=False,
-            rigid_options=gs.options.RigidOptions(max_collision_pairs=100),
         )
 
         _ = self.scene.add_entity(
             gs.morphs.Plane(),
         )
 
+        # Add the table platform
         _ = self.scene.add_entity(
             gs.morphs.Box(
                 pos=(0.5, 0.5, 0),
@@ -74,38 +76,26 @@ class BeatTheDeskEnv:
         )
 
         self.cam_480 = self.scene.add_camera(
-            res=(854, 480),
-            pos=(4, 0.5, 2.5),
-            lookat=(0, 0.5, 0),
-            fov=30,
+            **CAMERA_CONFIGS["480p"],
             GUI=False,
         )
 
         self.cam_720 = self.scene.add_camera(
-            res=(1280, 720),
-            pos=(4, 0.5, 2.5),
-            lookat=(0, 0.5, 0),
-            fov=30,
+            **CAMERA_CONFIGS["720p"],
             GUI=False,
         )
 
         self.cam_1080 = self.scene.add_camera(
-            res=(1920, 1080),
-            pos=(4, 0.5, 2.5),
-            lookat=(0, 0.5, 0),
-            fov=30,
+            **CAMERA_CONFIGS["1080p"],
             GUI=False,
         )
 
         self.cam_secondary = self.scene.add_camera(
-            res=(640, 480),
-            pos=(0.5, 0.5, 2.5),
-            lookat=(0.5, 0.5, 0),
-            fov=30,
+            **CAMERA_CONFIGS["secondary"],
             GUI=False,
         )
 
-        self.spawn_objs(objects)
+        self.spawn_objs(self.objects_stack)
 
         self.scene.build()
 
@@ -167,10 +157,10 @@ class BeatTheDeskEnv:
 
         return qpos
 
-    def path_to(self, start_qpos, qpos, num_waypoints):
+    def path_to(self, qpos_start, qpos_goal, num_waypoints):
         path = self.robot.plan_path(
-            qpos_start=start_qpos,
-            qpos_goal=qpos,
+            qpos_start=qpos_start,
+            qpos_goal=qpos_goal,
             num_waypoints=num_waypoints,
             timeout=5,
             planner="RRTConnect",
@@ -197,42 +187,18 @@ class BeatTheDeskEnv:
         return None, color_type_str
 
     def spawn_objs(self, arr):
-        size = (0.05, 0.05, 0.05)
-
-        # RGBA color tuples (values from 0 to 1)
-        colors = {
-            "red": (0.94, 0.5, 0.5, 1.0),
-            "black": (0.2, 0.2, 0.2, 1.0),
-            "green": (0.6, 0.98, 0.6, 1.0),
-            "purple": (0.7, 0.5, 0.9, 1.0),
-        }
-
         for item in arr:
             for key, value in item.items():
                 color, obj = self.parse_color_type(key)
+                print(color, obj, value)
+                obj_ = self.scene.add_entity(
+                    gs.morphs.Box(
+                        size=OBJECT_SIZES,
+                        pos=value,
+                    ),
+                    surface=gs.surfaces.Metal(
+                        color=COLORS[color],
+                    ),
+                )
 
-                if obj == "container":
-                    obj_ = self.scene.add_entity(
-                        gs.morphs.Box(
-                            size=(0.2, 0.15, 0.02),
-                            pos=value,
-                        ),
-                        surface=gs.surfaces.Gold(
-                            color=colors[color],
-                            default_roughness=1.0,
-                        ),
-                    )
-                    self.cubes.append({key: obj_})
-
-                else:
-                    obj_ = self.scene.add_entity(
-                        gs.morphs.Box(
-                            size=size,
-                            pos=value,
-                        ),
-                        surface=gs.surfaces.Gold(
-                            color=colors[color],
-                            smooth=True,
-                        ),
-                    )
-                    self.cubes.append({key: obj_})
+                self.cubes.append({key: obj_})

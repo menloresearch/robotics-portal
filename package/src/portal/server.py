@@ -1,213 +1,99 @@
-# In src/portal/server.py
-import sys
-import os
-
-# Add the project root to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-
-from fastapi import FastAPI, WebSocket
-import json
-import uvicorn
 import asyncio
-from datetime import datetime
-import logging
-
-from .utils.utils import send_personal_message, check_timeout
-from contextlib import asynccontextmanager
-from dotenv import load_dotenv
-
-# from scenes.go2.go2_sim import Go2Sim
-# from scenes.g1_mall.g1_sim import G1SimMall
-# from scenes.g1.g1_sim import G1Sim
-# from .desk.adapter import BeatTheDeskSim
-from scenes.desk.adapter import BeatTheDeskSim
-# import os
-
 import genesis as gs
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-# Set up logging
-logging.basicConfig(level=logging.ERROR)
-logger = logging.getLogger(__name__)
+import json
+from typing import List
+from fastapi import WebSocket, APIRouter
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    load_dotenv()
-    yield
+class WebSocketManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
 
 
-app = FastAPI(lifespan=lifespan, title="Fully Self-Contained WebSocket Server")
-
-
-# Regular HTTP endpoint
-@app.get("/")
-async def get():
-    return {"message": "WebSocket server is running. Connect to /ws to use WebSocket."}
-
-
-@app.get("/defaul-scene-config")
-def default_config():
-    return json.load(open("assets/default_scene_configuration.json", "r"))
-
-
-# WebSocket endpoint with no external dependencies
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    # BUG: reconnecting will create intialisation error
-    if not gs._initialized:
-        gs.init()
-
-    active_connections = {}
-
-    # Accept connection
-    await websocket.accept()
-    client_id = id(websocket)
-    active_connections[client_id] = websocket
-
-    logger.info(
-        f"Client {client_id} connected. Total clients: {len(active_connections)}"
-    )
-
-    # Create message queue local to this websocket connection
-    message_queue = asyncio.Queue()
-    actions_queue = asyncio.Queue()
-    audio_service = None
-    # Notify about new connection
-    await send_personal_message(
-        websocket,
-        json.dumps({"type": "connection_established", "client_id": client_id}),
-        client_id,
-    )
-
-    # Will only advance after receiving text for environment from websocket
-    while True:
-        data = await websocket.receive_text()
-        message_data = json.loads(data)
-
-        objects_stack = [
-            {"red-cube": []},
-            {"black-cube": []},
-            {"green-cube": []},
-            {"purple-cube": []},
+class Server:
+    def __init__(self):
+        self.router = APIRouter(tags=["websocket"])
+        self.manager = WebSocketManager()
+        self.scenes = [
+            {"id": "default", "name": "Default"},
         ]
+        self.sims = {}
+        self.main_sim = None
 
-        objects_place = [
-            {"red-cube": []},
-            {"black-cube": []},
-            {"green-container": []},
-        ]
+        self.router.add_api_websocket_route("/ws", self.websocket_endpoint)
 
-        if message_data.get("type") == "env":
-            # if message_data.get("env") == "go2":
-            #     scene = Go2Sim(
-            #         config=message_data.get(
-            #             "config", default_config()["scenes"].get("go2", {})
-            #         )
-            #     )
-            #
-            # elif message_data.get("env") == "g1":
-            #     scene = G1Sim(
-            #         config=message_data.get(
-            #             "config", default_config()["scenes"].get("g1", {})
-            #         )
-            #     )
-            #
-            # elif message_data.get("env") == "g1_mall":
-            #     scene = G1SimMall(
-            #         config=message_data.get(
-            #             "config", default_config()["scenes"].get("g1_mall", {})
-            #         )
-            #     )
-            #     audio_service = scene.audio_service
+    def set_scenes(self, options):
+        self.scenes = options
+        return self.scenes
 
-            if message_data.get("env") == "arm-stack":
-                objects = message_data.get("positions")
-                res = message_data.get("resolution")
-                i = 0
-                for v in objects.values():
-                    if i < len(objects_stack):
-                        for key in objects_stack[i].keys():
-                            objects_stack[i][key] = v
-                        i += 1
-                print(objects_stack)
+    def register_simulations(self, sims):
+        if not isinstance(sims, list):
+            sims = [sims]
 
-                scene = BeatTheDeskSim(objects_stack, res)
+        for sim in sims:
+            self.sims[sim["id"]] = sim["sim"]
 
-            elif message_data.get("env") == "arm-place":
-                objects = message_data.get("positions")
-                i = 0
-                for v in objects.values():
-                    if i < len(objects_place):
-                        for key in objects_place[i].keys():
-                            objects_place[i][key] = v
-                        i += 1
-                print(objects_place)
+    async def websocket_endpoint(self, websocket: WebSocket):
+        if not gs._initialized:
+            gs.init()
 
-                scene = BeatTheDeskSim(objects_place, res)
+        await self.manager.connect(websocket)
+        message_queue = asyncio.Queue()
 
-            break
-
-    await send_personal_message(
-        websocket,
-        json.dumps({"type": "initialized", "client_id": client_id}),
-        client_id,
-    )
-    last_activity = datetime.now()
-
-    # Run both coroutines concurrently
-    server_task = asyncio.create_task(
-        scene.server_processor(message_queue, actions_queue, client_id, websocket)
-    )
-    client_task = asyncio.create_task(
-        scene.client_handler(
-            message_queue, actions_queue, client_id, websocket, last_activity
-        )
-    )
-
-    timeout_task = asyncio.create_task(check_timeout(websocket, last_activity))
-    if audio_service:
-        audio_service_task = asyncio.create_task(
-            audio_service.stream_tts(websocket=websocket)
+        # Sending back confirmation
+        await websocket.send_json(
+            {
+                "type": "connection_established",
+                "content": json.dumps({"scenes": self.scenes}),
+            }
         )
 
-    try:
-        # Wait for either task to finish (usually due to disconnect)
-        if audio_service:
-            done, pending = await asyncio.wait(
-                [server_task, client_task, timeout_task, audio_service_task],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-        else:
-            done, pending = await asyncio.wait(
-                [server_task, client_task, timeout_task],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-        # Cancel the remaining task
-        for task in pending:
-            task.cancel()
+        # Advance only when scene is chosen
+        while True:
             try:
-                await task
-            except asyncio.CancelledError:
-                pass
+                message = await websocket.receive_json()
 
-    except Exception as e:
-        logger.error(f"WebSocket error for client {client_id}: {str(e)}")
-    finally:
-        # Clean up - remove connection from active connections
-        if client_id in active_connections:
-            del active_connections[client_id]
+                if message.get("type") == "scene":
+                    res = message.get("resolution")
+                    scene = message.get("scene")
+                    if scene in self.sims.keys():
+                        self.main_sim = self.sims[scene](res)
+                        break
 
-        # Log remaining clients
-        logger.error(
-            f"Client {client_id} removed. Remaining clients: {len(active_connections)}"
+            except Exception:
+                raise
+
+        # Run both coroutines concurrently
+        server_task = asyncio.create_task(
+            self.main_sim.server_processor(message_queue, websocket)
+        )
+        client_task = asyncio.create_task(
+            self.main_sim.client_handler(message_queue, websocket)
         )
 
-    gs.destroy()
+        try:
+            # Wait for either task to finish (usually due to disconnect)
+            done, pending = await asyncio.wait(
+                [server_task, client_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
 
+            # Cancel the remaining task
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
 
-def run():
-    uvicorn.run(
-        "package.src.portal.server:app", host="0.0.0.0", port=8000, reload=False
-    )
+        except Exception:
+            raise
+
+        gs.destroy()

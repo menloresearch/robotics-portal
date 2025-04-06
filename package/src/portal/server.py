@@ -2,7 +2,7 @@ import asyncio
 import genesis as gs
 import json
 from typing import List
-from fastapi import WebSocket, APIRouter
+from fastapi import WebSocket, APIRouter, WebSocketDisconnect
 
 
 class WebSocketManager:
@@ -45,7 +45,6 @@ class Server:
             gs.init()
 
         await self.manager.connect(websocket)
-        message_queue = asyncio.Queue()
 
         # Sending back confirmation
         await websocket.send_json(
@@ -67,16 +66,14 @@ class Server:
                         self.main_sim = self.sims[scene](res)
                         break
 
-            except Exception:
-                raise
+            except WebSocketDisconnect:
+                raise Exception("Websocket discconected")
+            except Exception as e:
+                raise Exception(f"Exception occured: {e}")
 
         # Run both coroutines concurrently
-        server_task = asyncio.create_task(
-            self.main_sim.server_processor(message_queue, websocket)
-        )
-        client_task = asyncio.create_task(
-            self.main_sim.client_handler(message_queue, websocket)
-        )
+        server_task = asyncio.create_task(self.main_sim.server_processor(websocket))
+        client_task = asyncio.create_task(self.main_sim.client_handler(websocket))
 
         try:
             # Wait for either task to finish (usually due to disconnect)
@@ -93,7 +90,7 @@ class Server:
                 except asyncio.CancelledError:
                     pass
 
-        except Exception:
-            raise
+        except Exception as e:
+            raise Exception(f"Exception occured: {e}")
 
         gs.destroy()

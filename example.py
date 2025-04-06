@@ -1,5 +1,5 @@
-from portal.server import Server
-from scenes.desk.simulation import Simulation
+from portal import Server
+from examples.desk.simulation import Simulation
 import uvicorn
 from fastapi import FastAPI
 
